@@ -29,8 +29,9 @@ plot(rsfRaster)
 
 # Simulate data
 set.seed(1)
-dt <- 1
-xy <- simLang(nbObs=500, beta=beta, h=dt, xgrid=xgrid, ygrid=ygrid, covarray=covarray)
+nbObs <- 500
+time <- cumsum(rgamma(nbObs,10,10))
+xy <- simLang(nbObs=nbObs, beta=beta, time=time, xgrid=xgrid, ygrid=ygrid, covarray=covarray)
 points(xy,type="l")
 
 # Evaluate covariate gradients at observed locations
@@ -39,5 +40,5 @@ for(i in 1:dim(covarray)[3])
     gradarray[,,i] <- t(apply(xy,1,function(x) grad(interpCov,x,xgrid=xgrid,ygrid=ygrid,covmat=covarray[,,i])))
 
 # Optimise log-likelihood
-fit <- nlminb(start=c(0,0),objective=nllkLang,xy=xy,gradarray=gradarray,dt=dt,
+fit <- nlminb(start=c(0,0),objective=nllkLang,xy=xy,time=time,gradarray=gradarray,
               control=list(trace=1))
