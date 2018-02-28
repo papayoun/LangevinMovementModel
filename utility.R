@@ -31,7 +31,7 @@ interpCov <- function(xy,xgrid,ygrid,covmat) {
 ##' @param covarray Array of values of the covariates at the points given by
 ##' xgrid and ygrid, of dimensions (length(xgrid),length(ygrid),length(beta)).
 ##' 
-##' @return Value of the gradient of the RSF at the point xy.
+##' @return Gradient of the log-UD in xy.
 gradLogUD <- function(beta, xy, xgrid, ygrid, covarray) {
     gradvals <- apply(covarray, 3, 
                       function(covmat) grad(interpCov, x=xy, xgrid=xgrid, ygrid=ygrid,covmat=covmat))

@@ -1,10 +1,13 @@
 
-#' Langevin movement model negative log-likelihood function
+#' Negative log-likelihood function for Langevin movement model
+#' 
+#' At the moment, this function is based on the Euler approximation.
 #' 
 #' @param beta Parameters of the utilisation distribution
 #' @param xy Matrix of observed locations (two columns: x, y)
 #' @param gradarray Three-dimensional array of gradients of covariate fields. The rows index time, 
 #' the columns are the dimensions (x and y), and the layers index the covariates.
+#' @param dt Time step for Euler approximation
 #' 
 #' @return Negative log-likelihood
 nllkLang <- function(beta,xy,gradarray,dt) {
