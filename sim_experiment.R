@@ -36,7 +36,7 @@ points(xy,type="l")
 # Evaluate covariate gradients at observed locations
 gradarray <- array(NA,dim=c(nrow(xy),2,2))
 for(i in 1:dim(covarray)[3])
-    gradarray[,,i] <- apply(xy,1,function(x) grad(interpCov,x,xgrid=xgrid,ygrid=ygrid,covmat=covarray[,,i]))
+    gradarray[,,i] <- t(apply(xy,1,function(x) grad(interpCov,x,xgrid=xgrid,ygrid=ygrid,covmat=covarray[,,i])))
 
 # Optimise log-likelihood
 fit <- nlminb(start=c(0,0),objective=nllkLang,xy=xy,gradarray=gradarray,dt=dt,
