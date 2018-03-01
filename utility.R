@@ -37,3 +37,42 @@ gradLogUD <- function(beta, xy, xgrid, ygrid, covarray) {
                       function(covmat) grad(interpCov, x=xy, xgrid=xgrid, ygrid=ygrid,covmat=covmat))
     return(gradvals%*%beta)
 }
+
+#' Gradient of covariate field
+#' 
+#' @param xy Matrix of locations where the gradient should be evaluated
+#' @param xgrid Grid on which the covariates are known
+#' @param ygrid Grid on which the covariates are known
+#' @param covarray Array of values of the covariates at the points given by
+#' xgrid and ygrid, of dimensions (length(xgrid),length(ygrid),length(beta)).
+#' 
+#' @return Three-dimensional array of gradients of covariate fields. The rows index time, 
+#' the columns are the dimensions (x and y), and the layers index the covariates.
+covGrad <- function(xy, xgrid, ygrid, covarray) {
+    gradarray <- array(NA,dim=c(nrow(xy),2,2))
+    for(i in 1:dim(covarray)[3]) {
+        gradarray[,,i] <- t(apply(xy,1,function(x) 
+            grad(interpCov,x,xgrid=xgrid,ygrid=ygrid,covmat=covarray[,,i])))
+    }
+    return(gradarray)
+}
+
+#' Hessian of covariate field
+#' 
+#' @param xy Matrix of locations where the gradient should be evaluated
+#' @param xgrid Grid on which the covariates are known
+#' @param ygrid Grid on which the covariates are known
+#' @param covarray Array of values of the covariates at the points given by
+#' xgrid and ygrid, of dimensions (length(xgrid),length(ygrid),length(beta)).
+#' 
+#' @return Three-dimensional array of second derivatives of covariate fields. The rows
+#' index time, the four columns correspond to the elements of the Hessian matrix 
+#' (d/dx^2, d/dydx,d/dxdy, d/dy^2), and the layers index the covariates.
+covHessian <- function(xy, xgrid, ygrid, covarray) {
+    hessarray <- array(NA,dim=c(nrow(xy),4,2))
+    for(i in 1:dim(covarray)[3]) {
+        hessarray[,,i] <- t(apply(xy,1, function(x)
+            c(hessian(interpCov,x,xgrid=xgrid,ygrid=ygrid,covmat=covarray[,,i]))))
+    }
+    return(hessarray)
+}

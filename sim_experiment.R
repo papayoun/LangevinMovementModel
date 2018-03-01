@@ -42,9 +42,7 @@ ggplot(map,aes(x,y)) + geom_raster(aes(fill=z)) + coord_equal() +
     geom_point(aes(x,y),xydf,size=0.3) + geom_path(aes(x,y),xydf,size=0.3)
 
 # Evaluate covariate gradients at observed locations
-gradarray <- array(NA,dim=c(nrow(xy),2,2))
-for(i in 1:dim(covarray)[3])
-    gradarray[,,i] <- t(apply(xy,1,function(x) grad(interpCov,x,xgrid=xgrid,ygrid=ygrid,covmat=covarray[,,i])))
+gradarray <- covGrad(xy, xgrid, ygrid, covarray)
 
 # Optimise log-likelihood
 fit <- nlminb(start=c(0,0),objective=nllkLang,xy=xy,time=time,gradarray=gradarray,
