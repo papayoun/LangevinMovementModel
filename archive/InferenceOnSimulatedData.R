@@ -1,5 +1,6 @@
-source("ExampleSimulationFunctionsAndParameters.R")
-CompleteSample <- as.matrix(read.table("SimulatedSample.txt", header = T))
+source("archive/SimulationFunctions.R")
+source("archive/CovariateParameters.R")
+CompleteSample <- as.matrix(read.table("archive/SimulatedSample.txt", header = T))
 
 OptimContrast <- function(Param0, MyData, maxiter = 10,
                           PosCols = c("X1", "X2"), TimeCol = "Time"){
