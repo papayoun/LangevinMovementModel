@@ -4,3 +4,10 @@
 .Ruserdata
 *.Rproj
 TestingFile.R
+.Rproj.user
+*.log
+*.pdf
+*.aux
+*.gz
+ReferenceSimulatedDataSet.txt
+archive/SimulatedSample.txt
