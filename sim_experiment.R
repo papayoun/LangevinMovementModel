@@ -31,10 +31,25 @@ map <- data.frame(x=coordinates(rsfRaster)[,1],y=coordinates(rsfRaster)[,2],z=va
 
 # Simulate data
 set.seed(1)
+
+# Simulating Data with tiny dt --------------------------------------------
+# Delta <- 10^(-2)
+# simTimes <- seq(0, 500, by = Delta)
+# xySim <- simLang(beta = beta, time = simTimes,
+#                  xgrid=xgrid, ygrid=ygrid, covarray=covarray)
+# WholeData <- cbind(xySim, simTimes)
+# colnames(WholeData) <- c("x", "y", "t")
+# write.table(WholeData, file = "ReferenceSimulatedDataSet.txt", col.names = T, row.names = F)
+WholeData <- read.table("ReferenceSimulatedDataSet.txt", header = T)
 nbObs <- 500
-time <- cumsum(rgamma(nbObs,10,10))
-xy <- simLang(nbObs=nbObs, beta=beta, time=time, xgrid=xgrid, ygrid=ygrid, covarray=covarray)
-xydf <- data.frame(x=xy[,1],y=xy[,2])
+Sel <- sort(sample(1:nrow(WholeData), size = nbObs, replace = F))
+time <- WholeData$t[Sel]
+xydf <- WholeData[Sel, c("x", "y")]
+xy <- as.matrix(xydf)
+rownames(xy) <- NULL
+# xy <- simLang(beta=beta, time=time, xgrid=xgrid, ygrid=ygrid, covarray=covarray)
+
+
 
 # Plot simulated data on artificial RSF
 ggplot(map,aes(x,y)) + geom_raster(aes(fill=z)) + coord_equal() +
@@ -43,7 +58,10 @@ ggplot(map,aes(x,y)) + geom_raster(aes(fill=z)) + coord_equal() +
 
 # Evaluate covariate gradients at observed locations
 gradarray <- covGrad(xy, xgrid, ygrid, covarray)
-
+jacobarray <- covHessian(xy, xgrid, ygrid, covarray)
 # Optimise log-likelihood
 fit <- nlminb(start=c(0,0),objective=nllkLang,xy=xy,time=time,gradarray=gradarray,
+              control=list(trace=1))
+fitOz <- nlminb(start=c(0,0),objective=nllkLang,xy=xy,time=time,gradarray=gradarray,
+                jacobarray = jacobarray, method = "ozaki",
               control=list(trace=1))
