@@ -13,23 +13,48 @@ source("LinearAlgebraFunctions.R")
 #' @return A matrix having size of xy, corresponding of the expected mean 
 #' of the ozaki linearization, which is the muO of the article of Gloaguen et al
 #' 
-getOzakiMean <- function(xy, Deltas, gradmat, jacobmat) {
+getOzakiMean <- function(xy, Deltas, gradmat, jacobmat, jacobmatInv) {
   jacobmatInv <- t(apply(jacobmat, 1, vecSolveM))  #For each row, computing the inverse row
-  Idvec <- c(1, 0, 0, 1)
-  return(t(sapply(1:nrow(xy), function(i){
-    expJiMinusId <- (vecExpM(jacobmat[i, ] * Deltas[i]) - IdVec)
-    xy[i, ] + vecMtimesV(expJiMinusId, vecMtimesM(jacobmatInv[i, ], gradmat[i, ]))
+  Idvec <- c(1, 0, 0, 1)#I2 in vectorized version
+  return(t(sapply(1:(nrow(xy) - 1), function(i){
+    if(any(is.na(jacobmatInv[i, ]))){# If numerical problem, returns the euler approx
+      return(xy[i, ] + Deltas[i] * gradmat[i, ])
+    }
+    else{
+      expJiMinusId <- (vecExpM(jacobmat[i, ] * Deltas[i]) - Idvec)
+      return(xy[i, ] + vecMtimesV(expJiMinusId, vecMtimesV(jacobmatInv[i, ], gradmat[i, ])))
+    }
   })))
 }
 
-getOzakiCov <- function(xy, Deltas, gradmat, jacobmat) {
-  JksJ <- t(apply(jacobmat, 1, vecSolveM))  #For each row, computing the inverse row
+getOzakiCovariance <- function(xy, Deltas, gradmat, jacobmat, Inv = F) {
   Idvec <- c(1, 0, 0, 1)
   I4 <- diag(1, 4)
-  return(t(sapply(1:nrow(xy), function(i){
-    JksJ <- MksumM(jacobmat[i, ])
-    JksJinv <- MksumMInv(jacobmat[i, ])
-    as.numeric(JksJinv %*% (expm::expm(JksJ * Deltas[i]) - I4) %*% Idvec)
+  return(t(sapply(1:(nrow(xy) - 1), function(i){
+    if(all.equal(jacobmat[i, 1], 0) == T | all.equal(jacobmat[i, 4], 0) == T)# All betas equal to 0
+      vecCov <- c(Deltas[i], 0, 0, Deltas[i])#Euler approximation
+    else{
+      JksJ <- MksumM(jacobmat[i, ])# Kronecker sum
+      JksJinv <- MksumMInv(jacobmat[i, ])# Inverse Kronecker sum
+      if(any(is.na(JksJinv))){#Case of numerical problem
+        vecCov <- c(Deltas[i], 0, 0, Deltas[i])#Euler approximation
+      }
+      else{
+        vecCov <- as.numeric(JksJinv %*% (expm::expm(JksJ * Deltas[i]) - I4) %*% Idvec)
+        if(mode(all.equal(vecCov[2], vecCov[3], tolerance = 10^(-4))) == "character"){
+          print("Line", i)
+          print("jacobmat[i,]")
+          print(jacobmat[i, ])
+          print("Non symmetric matrix")
+        }
+      }
+    }
+    if(Inv){
+      return(vecSolveM(vecCov))# directly to inverse
+    }
+    else{
+      return(vecCov)
+    }
   })))
 }
 
