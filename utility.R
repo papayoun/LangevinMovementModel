@@ -49,7 +49,7 @@ gradLogUD <- function(beta, xy, xgrid, ygrid, covarray) {
 #' @return Three-dimensional array of gradients of covariate fields. The rows index time, 
 #' the columns are the dimensions (x and y), and the layers index the covariates.
 covGrad <- function(xy, xgrid, ygrid, covarray) {
-    gradarray <- array(NA,dim=c(nrow(xy),2,2))
+    gradarray <- array(NA,dim=c(nrow(xy),2,dim(covarray)[3]))
     for(i in 1:dim(covarray)[3]) {
         gradarray[,,i] <- t(apply(xy,1,function(x) 
             grad(interpCov,x,xgrid=xgrid,ygrid=ygrid,covmat=covarray[,,i])))
@@ -69,7 +69,7 @@ covGrad <- function(xy, xgrid, ygrid, covarray) {
 #' index time, the four columns correspond to the elements of the Hessian matrix 
 #' (d/dx^2, d/dydx,d/dxdy, d/dy^2), and the layers index the covariates.
 covHessian <- function(xy, xgrid, ygrid, covarray) {
-    hessarray <- array(NA,dim=c(nrow(xy),4,2))
+    hessarray <- array(NA,dim=c(nrow(xy),4,dim(covarray)[3]))
     for(i in 1:dim(covarray)[3]) {
         hessarray[,,i] <- t(apply(xy,1, function(x)
             c(hessian(interpCov,x,xgrid=xgrid,ygrid=ygrid,covmat=covarray[,,i]))))
