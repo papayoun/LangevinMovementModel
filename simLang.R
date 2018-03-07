@@ -3,14 +3,14 @@
 #' 
 #' This function is based on the Euler approximation.
 #' 
-#' @param nbObs Number of locations to simulate
 #' @param beta Vector of resource selection coefficients
 #' @param time Vector of times of observations
 #' @param xgrid Grid on which the covariates are known
 #' @param ygrid Grid on which the covariates are known
 #' @param covarray Array of values of the covariates at the points given by
 #' xgrid and ygrid, of dimensions (length(xgrid),length(ygrid),length(beta)).
-simLang <- function(nbObs, beta, time, xgrid, ygrid, covarray) {
+simLang <- function(beta, time, xgrid, ygrid, covarray) {
+    nbObs <- length(time)
     xy <- matrix(0,nbObs,2)
     dt <- diff(time)
     for(t in 2:nbObs) {
