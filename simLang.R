@@ -13,11 +13,10 @@ simLang <- function(beta, time, xgrid, ygrid, covarray) {
     nbObs <- length(time)
     xy <- matrix(0,nbObs,2)
     dt <- diff(time)
-    cat("Simulating Langevin process...\n")
     for(t in 2:nbObs) {
-        cat("\r",round(100*t/nbObs),"%")
+        cat("\rSimulating Langevin process...",round(100*t/nbObs),"%")
         xy[t,] <- xy[t-1,] + 
-            0.5*gradLogUD(beta=beta,xy=xy[t-1,],xgrid=xgrid,ygrid=ygrid,covarray=covarray) * dt[t-1] + 
+            0.5 * gradLogUD(beta=beta,xy=xy[t-1,],xgrid=xgrid,ygrid=ygrid,covarray=covarray) * dt[t-1] + 
             rnorm(2,0,sqrt(dt[t-1]))
     }
     cat("\n")
