@@ -43,10 +43,12 @@ HessFun <- function(x, Cs, Ds, Oms, I){
 # Alpha <- 0;
 GradC1 <- function(x) GradFun(x, Cs = CP1, Ds = DP1, Oms = FP1, I = IP1)
 GradC2 <- function(x) GradFun(x, Cs = CP2, Ds = DP2, Oms = FP2, I = IP2)
+GradDist <- function(x) - 2 * x
+HessDist <- function(x) as.numeric(diag(- 2, 2))
 HessC1 <- function(x) HessFun(x, Cs = CP1, Ds = DP1, Oms = FP1, I = IP1)
 HessC2 <- function(x) HessFun(x, Cs = CP2, Ds = DP2, Oms = FP2, I = IP2)
 MeanStep <- function(x, Delta, Alpha, Beta1, Beta2){
-  (0.5 * Delta * (-2 * x * Alpha 
+  (0.5 * Delta * (Alpha * GradDist(x)
                   + Beta1 * GradC1(x) 
                   + Beta2 * GradC2(x)))
 }

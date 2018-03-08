@@ -11,3 +11,4 @@ TestingFile.R
 *.gz
 ReferenceSimulatedDataSet.txt
 archive/SimulatedSample.txt
+*.RData
