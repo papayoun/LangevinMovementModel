@@ -16,14 +16,13 @@ source("OzakiFunctions.R")
 #' @return Negative log-likelihood
 nllkLang <- function(beta, xy, time, gradarray, hessarray = NULL, method = "euler") {
     dt <- diff(time)
-    LangevinFactor <- 0.5 # 0.5 to fit with the Langevin 0.5 factor
-    gradmat <- LangevinFactor * apply(gradarray, 2, function(mat) mat %*% beta)
+    gradmat <- 0.5 * apply(gradarray, 2, function(mat) mat %*% beta)
     n <- nrow(xy)
     if(method == "euler"){
         llk <- sum(dnorm(xy[-1, ], xy[-n,] + dt * gradmat[-n, ], sqrt(dt), log=TRUE))
     }
     if(method == "ozaki"){
-        hessmat <- LangevinFactor * apply(hessarray, 2, function(mat) mat %*% beta)
+        hessmat <- 0.5 * apply(hessarray, 2, function(mat) mat %*% beta)
         Means <- getOzakiMean(xy, dt, gradmat, hessmat) # matrix of size (n-1) * 2
         CovsInv <- getOzakiCovariance(xy, dt, gradmat, hessmat, Inv = T) # matrix of size (n-1) * 4
         DetsInv <- apply(CovsInv, 1, vecDetM) # compute determinant to spot potential problems
