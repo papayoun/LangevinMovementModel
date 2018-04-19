@@ -13,3 +13,10 @@ OzaEstimates <- do.call(rbind.data.frame, lapply(AllResults, function(x){
 }))
 
 Estimates <- rbind.data.frame(OzaEstimates, EulEstimates)
+par(mfrow = c(1, 3))
+boxplot(Estimates[, "Beta1"] ~ Estimates[, "method"])
+abline(h = -1)
+boxplot(Estimates[, "Beta2"] ~ Estimates[, "method"])
+abline(h = 0.5)
+boxplot(Estimates[, "Alpha"] ~ Estimates[, "method"])
+abline(h = 0.05)

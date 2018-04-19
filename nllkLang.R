@@ -38,3 +38,14 @@ nllkLang <- function(beta, xy, time, gradarray, hessarray = NULL, method = "eule
     }
     return(-llk)
 }
+
+eulerEstimate <- function(xy, time, gradarray){
+  n <- nrow(xy)
+  d <- dim(gradarray)[3] # Number of covariates
+  timeIncrementMatrix <- diag(rep(diff(time), 2))# 2 * (n - 1) * 2 * (n - 1) matrix
+  designMatrix <- 0.5 * rbind(gradarray[-n , 1 , 1 : d ], gradarray[-n , 2 , 1:d])# 2 (n - 1) * d matrix
+  incrementVector <- matrix(apply(xy, 2, diff)  , ncol=1)# 2 * (n - 1) * d matrix
+  estimatedCovariance <- solve(t(designMatrix) %*% timeIncrementMatrix %*% designMatrix)
+  betaEstimation <- estimatedCovariance %*% t(designMatrix) %*% incrementVector;
+  return(list(coefficients = as.numeric(betaEstimation), covariance = estimatedCovariance))
+}

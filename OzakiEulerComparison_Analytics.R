@@ -6,9 +6,9 @@ A <- 0.05; B1 <- -1; B2 <- 0.5
 DataSetLength <- 500
 SimulEstim <- function(seed){
   set.seed(seed)
-  CompleteSample <- SimulationProcess(Start = c(0, 0), Npoints = 5 * 10^5, 
-                                      Delta = 0.001, A, B1, B2, method = "Ozaki")
-  Sel <- sort(sample(floor(seq(1, nrow(CompleteSample), by = 1000)), 
+  CompleteSample <- SimulationProcess(Start = c(0, 0), Npoints = 5 * 10^3, 
+                                      Delta = 0.01, A, B1, B2, method = "Ozaki")
+  Sel <- sort(sample(floor(seq(1, nrow(CompleteSample), by = 10)), 
                     replace = F, size = DataSetLength))
   xy <- as.matrix(CompleteSample[Sel, c("X1", "X2")])
   time <- CompleteSample[Sel, "Time"]

@@ -64,8 +64,8 @@ plot(log(rsfRaster))
 ###################
 ## Simulate data ##
 ###################
-dt <- 0.5
-Tmax <- 500
+dt <- 1
+Tmax <- 1000
 time <- seq(0,Tmax,by=dt)
 #set.seed(1)
 myseed <- sample( 1 : 50000)
@@ -105,22 +105,5 @@ abline(0,1,col=2)
 #############################################
 ## Fit with Euler method using lm approach ##
 #############################################
-dim(xy)
-d <- dim(gradarray)[3]
-n <- dim(gradarray)[1]
 
-##  design matrix construction
-X <- rbind(gradarray[-n , 1 , 1 : d ], gradarray[-n , 2 , 1:d])
-
-TT <-  diag(diff(time), ncol = 2 * (n-1), nrow = 2 * (n-1))
-
-## 
-TZ <- matrix(apply(xy, 2, diff)  , ncol=1)
-
-## estimation
-XTTX    <- t(X) %*% TT^2 %*% X
-XTTXinv <- solve(XTTX)
-(Bhat  <- XTTXinv %*% t(X) %*% TZ)
-
-diag(XTTXinv)
-
+eulerEstimate(xy, time, gradarray)
