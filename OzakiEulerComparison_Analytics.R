@@ -7,7 +7,7 @@ DataSetLength <- 500
 SimulEstim <- function(seed){
   set.seed(seed)
   CompleteSample <- SimulationProcess(Start = c(0, 0), Npoints = 5 * 10^5, 
-                                      Delta = 0.001, A, B1, B2)
+                                      Delta = 0.001, A, B1, B2, method = "Ozaki")
   Sel <- sort(sample(floor(seq(1, nrow(CompleteSample), by = 1000)), 
                     replace = F, size = DataSetLength))
   xy <- as.matrix(CompleteSample[Sel, c("X1", "X2")])
@@ -30,7 +30,8 @@ SimulEstim <- function(seed){
   }
   fitE <- nlminb(start=c(0, 0, 0), objective = CFE,
                  control=list(trace = 0))
-  fitO <- nlminb(start=c(0, 0, 0), objective = CFO, control=list(trace = 0, x.tol = 10^(-4)))
+  fitO <- nlminb(start = c(0, 0, 0), objective = CFO, 
+                 control = list(trace = 0, x.tol = 10^(-4)))
   return(list(Data = CompleteSample[Sel, ], fitE = fitE, fitO = fitO))
 }
 library(parallel)
