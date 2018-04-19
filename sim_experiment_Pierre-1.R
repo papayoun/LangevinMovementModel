@@ -64,7 +64,7 @@ plot(log(rsfRaster))
 ###################
 ## Simulate data ##
 ###################
-dt <- 0.5
+dt <- 1
 Tmax <- 500
 time <- seq(0,Tmax,by=dt)
 #set.seed(1)
@@ -110,7 +110,7 @@ d <- dim(gradarray)[3]
 n <- dim(gradarray)[1]
 
 ##  design matrix construction
-X <- rbind(gradarray[-n , 1 , 1 : d ], gradarray[-n , 2 , 1:d])
+X <- 0.5 * rbind(gradarray[-n , 1 , 1 : d ], gradarray[-n , 2 , 1:d])
 
 TT <-  diag(diff(time), ncol = 2 * (n-1), nrow = 2 * (n-1))
 
@@ -118,7 +118,7 @@ TT <-  diag(diff(time), ncol = 2 * (n-1), nrow = 2 * (n-1))
 TZ <- matrix(apply(xy, 2, diff)  , ncol=1)
 
 ## estimation
-XTTX    <- t(X) %*% TT^2 %*% X
+XTTX    <- t(X) %*% TT %*% X
 XTTXinv <- solve(XTTX)
 (Bhat  <- XTTXinv %*% t(X) %*% TZ)
 
