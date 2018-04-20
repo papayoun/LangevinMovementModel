@@ -17,7 +17,6 @@ source("OzakiFunctions.R")
 nllkLang <- function(beta, xy, time, ID = NULL, gradarray, 
                      hessarray = NULL, method = "euler") {
     n <- nrow(xy)
-    dt <- diff(time)
     
     # multiply gradients by beta coefficients
     gradmat <- 0.5 * apply(gradarray, 2, function(mat) mat %*% beta)
@@ -31,8 +30,10 @@ nllkLang <- function(beta, xy, time, ID = NULL, gradarray,
     i1 <- c(1, i0+1) # first obs
     i2 <- c(i0, n) # last obs
     
+    dt <- time[-i1] - time[-i2]
+    
     if(method == "euler") {
-        llk <- sum(dnorm(xy[-i1,], xy[-i2,] + dt[-i0]*gradmat[-i2,], sqrt(dt[-i0]), log=TRUE))
+        llk <- sum(dnorm(xy[-i1,], xy[-i2,] + dt*gradmat[-i2,], sqrt(dt), log=TRUE))
     }
     if(method == "ozaki"){
         hessmat <- 0.5 * apply(hessarray, 2, function(mat) mat %*% beta)
