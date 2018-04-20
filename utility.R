@@ -33,8 +33,8 @@ interpCov <- function(xy,xgrid,ygrid,covmat) {
 #' 
 #' @return Gradient of the log-UD in xy.
 gradLogUD <- function(beta, xy, xgrid, ygrid, covarray) {
-    gradvals <- apply(covarray, 3, 
-                      function(covmat) grad(interpCov, x=xy, xgrid=xgrid, ygrid=ygrid,covmat=covmat))
+    gradvals <- apply(covarray, 3, function(covmat) 
+        grad(interpCov, x=xy, xgrid=xgrid, ygrid=ygrid,covmat=covmat))
     return(gradvals%*%beta)
 }
 
