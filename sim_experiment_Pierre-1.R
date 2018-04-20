@@ -64,17 +64,19 @@ plot(log(rsfRaster))
 ###################
 ## Simulate data ##
 ###################
+ntrack <- 2
 dt <- 1
 Tmax <- 500
 time <- seq(0,Tmax,by=dt)
-#set.seed(1)
-myseed <- sample( 1 : 50000)
-set.seed(myseed)
-
-covarrayTest <- covarray
-covarrayTest[,,3] <- 10 * covarray[,,3]
-xy <- simLang(beta = beta, time = time, xy0 = c(0,0), xgrid = xgrid, 
-              ygrid = ygrid, covarray = covarrayTest)
+set.seed(1)
+xy <- NULL
+ID <- rep(1:ntrack,each=Tmax/dt+1)
+for(zoo in 1:ntrack) {
+    track <- simLang(beta=beta, time=time, xy0=runif(2,-10,10), 
+                     xgrid=xgrid, ygrid=ygrid, covarray=covarray)
+    xy <- rbind(xy, track)
+}
+time <- rep(time,ntrack)
 
 plot(log(rsfRaster))
 points(xy,type="o",cex=0.4)
@@ -85,7 +87,7 @@ points(xy,type="o",cex=0.4)
 # Evaluate covariate gradients at observed locations
 gradarray <- covGrad(xy, xgrid, ygrid, covarray)
 # Optimise log-likelihood
-fit <- nlminb(start = beta, objective = nllkLang, xy = xy, time = time,
+fit <- nlminb(start = beta, objective = nllkLang, xy = xy, time = time, ID=ID,
               gradarray = gradarray, control = list(trace=1))
 
 # Compute estimated RSF
@@ -105,17 +107,17 @@ abline(0,1,col=2)
 #############################################
 ## Fit with Euler method using lm approach ##
 #############################################
-dim(xy)
 d <- dim(gradarray)[3]
 n <- dim(gradarray)[1]
 
+i0 <- which(ID[-1]!=ID[-n])
+i2 <- c(i0, n) # last obs of each track
+
 ##  design matrix construction
-X <- 0.5 * rbind(gradarray[-n , 1 , 1 : d ], gradarray[-n , 2 , 1:d])
+X <- 0.5*rbind(gradarray[-i2,1,], gradarray[-i2,2,])
+TT <- diag(rep(diff(time)[-i0],2))
 
-TT <-  diag(diff(time), ncol = 2 * (n-1), nrow = 2 * (n-1))
-
-## 
-TZ <- matrix(apply(xy, 2, diff)  , ncol=1)
+TZ <- matrix(apply(xy, 2, function(c) diff(c)[-i0]), ncol=1)
 
 ## estimation
 XTTX    <- t(X) %*% TT %*% X
@@ -124,3 +126,5 @@ XTTXinv <- solve(XTTX)
 
 diag(XTTXinv)
 
+# 95% CI
+cbind(Bhat-1.96*sqrt(diag(XTTXinv)),Bhat,Bhat+1.96*sqrt(diag(XTTXinv)))
