@@ -16,14 +16,17 @@ eulerLSE <- function(ID=NULL, xy, time, gradarray)
         ID <- rep(1,n)
     
     i0 <- which(ID[-1]!=ID[-n])
+    i1 <- c(1, i0+1) # first obs of each track
     i2 <- c(i0, n) # last obs of each track
     
     # matrix of covariate derivatives
     X <- 0.5*rbind(gradarray[-i2,1,], gradarray[-i2,2,])
     # diagonal matrix of time intervals
-    TT <- diag(rep(diff(time)[-i0],2))
+    dt <- time[-i1] - time[-i2]
+    TT <- diag(rep(dt,2))
     # vector of 2-d steps
-    TZ <- matrix(apply(xy, 2, function(c) diff(c)[-i0]), ncol=1)
+    dxy <- xy[-i1,] - xy[-i2,]
+    TZ <- matrix(dxy, ncol=1)
     
     # estimation
     XTTX <- t(X) %*% TT %*% X
