@@ -53,7 +53,7 @@ for(i in 1:length(covlist))
     covarray[,,i] <- t(apply(as.matrix(covlist[[i]]),2,rev))
 
 # Define artificial RSF
-beta <- c(3,4,-.7) # true parameter values (used in simulations)
+beta <- c(1, -1, -0.05) # true parameter values (used in simulations)
 rsfRaster <- 0
 for(i in 1:length(covlist))
     rsfRaster <- rsfRaster + beta[i]*covlist[[i]]
@@ -72,18 +72,21 @@ myseed <- sample( 1 : 50000)
 set.seed(myseed)
 
 covarrayTest <- covarray
-covarrayTest[,,3] <- 10 * covarray[,,3]
+covarrayTest[,,3] <- covarray[,,3]
 xy <- simLang(beta = beta, time = time, xy0 = c(0,0), xgrid = xgrid, 
-              ygrid = ygrid, covarray = covarrayTest)
+              ygrid = ygrid, covarray = covarray)
 
 plot(log(rsfRaster))
 points(xy,type="o",cex=0.4)
+
+
 
 ###########################
 ## Fit with Euler method ##
 ###########################
 # Evaluate covariate gradients at observed locations
 gradarray <- covGrad(xy, xgrid, ygrid, covarray)
+eulerEstimate(xy, time, gradarray)
 # Optimise log-likelihood
 fit <- nlminb(start = beta, objective = nllkLang, xy = xy, time = time,
               gradarray = gradarray, control = list(trace=1))
