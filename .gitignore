@@ -12,3 +12,4 @@ TestingFile.R
 ReferenceSimulatedDataSet.txt
 archive/SimulatedSample.txt
 *.RData
+simulatedData/*

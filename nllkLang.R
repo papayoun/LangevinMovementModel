@@ -17,7 +17,6 @@ source("OzakiFunctions.R")
 nllkLang <- function(beta, xy, time, ID = NULL, gradarray, 
                      hessarray = NULL, method = "euler") {
     n <- nrow(xy)
-    
     # multiply gradients by beta coefficients
     gradmat <- 0.5 * apply(gradarray, 2, function(mat) mat %*% beta)
     

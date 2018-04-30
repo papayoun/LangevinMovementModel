@@ -2,6 +2,8 @@ rm(list = ls())
 source("archive/SimulationFunctions.R")
 source("archive/CovariateParameters.R")
 source("nllkLang.R")
+source("eulerLSE.R")
+
 A <- 0.05; B1 <- -1; B2 <- 0.5
 DataSetLength <- 500
 SimulEstim <- function(seed){
@@ -22,14 +24,15 @@ SimulEstim <- function(seed){
   jacobarray[,,3] <- t(apply(xy, 1, HessDist))
   CFE <- function(ParamVector){
     nllkLang(beta = ParamVector, xy = xy, time = time, 
-             gradarray = gradarray, jacobarray)
+             gradarray = gradarray)
   }
   CFO <- function(ParamVector){
     nllkLang(beta = ParamVector, xy = xy, time = time, 
-             gradarray = gradarray, jacobarray, method = "ozaki")
+             gradarray = gradarray, hessarray = jacobarray, method = "ozaki")
   }
-  fitE <- nlminb(start=c(0, 0, 0), objective = CFE,
-                 control=list(trace = 0))
+  # fitE <- nlminb(start=c(0, 0, 0), objective = CFE,
+  #                control=list(trace = 0))
+  fitE <- eulerLSE(xy = xy, time = time, gradarray = gradarray)
   fitO <- nlminb(start = c(0, 0, 0), objective = CFO, 
                  control = list(trace = 0, x.tol = 10^(-4)))
   return(list(Data = CompleteSample[Sel, ], fitE = fitE, fitO = fitO))
