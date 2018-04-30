@@ -1,14 +1,4 @@
 
-#' Ce script génère deux covariables aléatoires, et calcule la distance au centre (au carré)
-#' comme autre covariable. Tu peux les visualiser avec plot(covlist[[i]]) (pour i=1,2,3).
-#' Ensuite, la distribution d'utilisation est définie par une RSF, i.e. exp(beta%*%covariables),
-#' où je choisis beta = (2,4,-6). Tu peux la visualiser avec plot(rsfRaster).
-#' Je simule 1000 positions avec un schéma d'Euler, sur cette distribution d'utilisation. Finalement,
-#' j'utilise la pseudo-vraisemblance basée sur le schéma d'Euler, au même pas de temps que celui de
-#' la simulation, pour estimer les paramètres du modèle. Donc, en l'occurrence, j'utilise la "vraie"
-#' vraisemblance du processus générateur, ce qui devrait nous permettre de retrouver les paramètres
-#' sans problème. Pourtant, c'est pas vraiment le cas.
-
 # Load packages
 library(raster)
 library(numDeriv)
@@ -20,6 +10,7 @@ source("RSF.R")
 source("utility.R")
 source("simLang.R")
 source("nllkLang.R")
+source("eulerLSE.R")
 
 ###############################
 ## Define covariates and RSF ##
@@ -53,60 +44,74 @@ for(i in 1:length(covlist))
     covarray[,,i] <- t(apply(as.matrix(covlist[[i]]),2,rev))
 
 # Define artificial RSF
-beta <- c(1, -1, -0.05) # true parameter values (used in simulations)
+beta <- c(1, -1, -10) # true parameter values (used in simulations)
 rsfRaster <- 0
 for(i in 1:length(covlist))
     rsfRaster <- rsfRaster + beta[i]*covlist[[i]]
 rsfRaster <- exp(rsfRaster)
-
+plot(rsfRaster)
 plot(log(rsfRaster))
 
 ###################
 ## Simulate data ##
 ###################
-dt <- 1
-Tmax <- 1000
-time <- seq(0,Tmax,by=dt)
-#set.seed(1)
-myseed <- sample( 1 : 50000)
-set.seed(myseed)
 
-covarrayTest <- covarray
-covarrayTest[,,3] <- covarray[,,3]
-xy <- simLang(beta = beta, time = time, xy0 = c(0,0), xgrid = xgrid, 
-              ygrid = ygrid, covarray = covarray)
+ntrack <- 2
+dt <- 1
+Tmax <- 500
+time <- seq(0, Tmax, by = dt)
+data <- NULL
+
+set.seed(1)
+for(zoo in 1:ntrack) {
+    track <- simLang(beta=beta, time=time, xy0=runif(2, -10, 10), 
+                     xgrid=xgrid, ygrid=ygrid, covarray=covarray)
+    data <- rbind(data, cbind(rep(zoo,nrow(track)),track,time))
+}
+colnames(data) <- c("ID","x","y","time")
+
+# # save full simulated data set before thinning
+# alldata <- data
+# # thin
+# nobs <- nrow(alldata)
+# ind <- sort(sample(1:nrow(alldata),size=nobs,replace=FALSE))
+# data <- alldata[ind,]
+
+ID <- data[,"ID"]
+xy <- data[,c("x","y")]
+time <- data[,"time"]
 
 plot(log(rsfRaster))
-points(xy,type="o",cex=0.4)
+lapply(split(data.frame(xy), ID), function(z) {
+  points(z,type="o",cex=0.4); 
+  points(z[c(1, nrow(z)), ], col = c("blue", "red"), pch = 20)})
 
-
-
-###########################
-## Fit with Euler method ##
-###########################
 # Evaluate covariate gradients at observed locations
 gradarray <- covGrad(xy, xgrid, ygrid, covarray)
-eulerEstimate(xy, time, gradarray)
-# Optimise log-likelihood
-fit <- nlminb(start = beta, objective = nllkLang, xy = xy, time = time,
-              gradarray = gradarray, control = list(trace=1))
+
+######################################
+## Fit UD with Euler discretization ##
+######################################
+# Via numerical MLE
+# fit <- nlminb(start = beta, objective = nllkLang, xy = xy, time = time, ID=ID,
+#               gradarray = gradarray, control = list(trace=1))
+
+# Via least squares
+lse <- eulerLSE(ID=ID, time=time, xy=xy, gradarray=gradarray)
+
+# 95% CI
+cbind(lse$Bhat-1.96*sqrt(diag(lse$var)),lse$Bhat,lse$Bhat+1.96*sqrt(diag(lse$var)))
 
 # Compute estimated RSF
-betaMLE <- fit$par
+betaMLE <- lse$Bhat
 rsfRasterMLE <- 0
 for(i in 1:length(covlist))
     rsfRasterMLE <- rsfRasterMLE + betaMLE[i]*covlist[[i]]
 rsfRasterMLE <- exp(rsfRasterMLE)
-
+plot(rsfRasterMLE)
+plot(rsfRaster)
 # Plot estimated utilisation vs true utilisation for each grid cell 
 # (should align with identity line)
 plot(values(rsfRaster)/sum(values(rsfRaster)),
      values(rsfRasterMLE)/sum(values(rsfRasterMLE)))
 abline(0,1,col=2)
-
-
-#############################################
-## Fit with Euler method using lm approach ##
-#############################################
-
-eulerEstimate(xy, time, gradarray)
