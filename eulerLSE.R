@@ -29,9 +29,9 @@ eulerLSE <- function(ID=NULL, xy, time, gradarray)
     TZ <- matrix(dxy, ncol=1)
     
     # estimation
-    XTTX <- t(X) %*% TT %*% X
+    XTTX <- t(X) %*% TT^2 %*% X
     XTTXinv <- solve(XTTX)
-    Bhat <- XTTXinv %*% t(X) %*% TZ
+    Bhat <- XTTXinv %*% t(X) %*% TT %*% TZ
     
     return(list(Bhat=as.vector(Bhat), var=XTTXinv))
 }
