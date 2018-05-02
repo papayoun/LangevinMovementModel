@@ -20,18 +20,18 @@ eulerLSE <- function(ID=NULL, xy, time, gradarray)
     i2 <- c(i0, n) # last obs of each track
     
     # matrix of covariate derivatives
-    X <- 0.5*rbind(gradarray[-i2,1,], gradarray[-i2,2,])
+    D <- 0.5*rbind(gradarray[-i2,1,], gradarray[-i2,2,])
     # diagonal matrix of time intervals
     dt <- time[-i1] - time[-i2]
     TT <- diag(rep(dt,2))
     # vector of 2-d steps
     dxy <- xy[-i1,] - xy[-i2,]
-    TZ <- matrix(dxy, ncol=1)
+    TY <- matrix(dxy, ncol=1)
     
     # estimation
-    XTTX <- t(X) %*% TT^2 %*% X
-    XTTXinv <- solve(XTTX)
-    Bhat <- XTTXinv %*% t(X) %*% TT %*% TZ
+    DTTD <- t(D) %*% TT %*% D
+    DTTDinv <- solve(DTTD)
+    Bhat <- DTTDinv %*% t(D) %*% TY
     
-    return(list(Bhat=as.vector(Bhat), var=XTTXinv))
+    return(list(Bhat=as.vector(Bhat), var=DTTDinv))
 }
