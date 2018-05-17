@@ -41,7 +41,9 @@ HessFun <- function(x, Cs, Ds, Oms, I){
 # UD parameters
 # Beta1 <- -1;        Beta2 <- 0.5
 # Alpha <- 0;
+ScalC1 <- function(x) IP1 * prod(ScalarFun(x, C = CP1, DP1, FP1))
 GradC1 <- function(x) GradFun(x, Cs = CP1, Ds = DP1, Oms = FP1, I = IP1)
+ScalC2 <- function(x) IP2 * prod(ScalarFun(x, C = CP2, D = DP2, Om = FP2))
 GradC2 <- function(x) GradFun(x, Cs = CP2, Ds = DP2, Oms = FP2, I = IP2)
 GradDist <- function(x) - 2 * x
 HessDist <- function(x) as.numeric(diag(- 2, 2))

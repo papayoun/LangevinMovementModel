@@ -47,7 +47,10 @@ MksumM <- function(vecM){
 MksumMInv <- function(vecM){
     a <- vecM[1]; b <- vecM[2]; c <- vecM[3]; d <- vecM[4]
     Det <- 2 * (a + d) * (a*d - b*c)
-    if(Det == 0){
+    if(is.na(Det)){
+      return(matrix(NA, nrow = 4, ncol = 4))
+    }
+    else if(Det == 0){
         return(matrix(NA, nrow = 4, ncol = 4))
     }
     VecMat <- c(d*d + a*d - b*c, -c*d       , -c*d       , c*c          ,

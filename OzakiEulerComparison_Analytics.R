@@ -3,41 +3,66 @@ source("archive/SimulationFunctions.R")
 source("archive/CovariateParameters.R")
 source("nllkLang.R")
 source("eulerLSE.R")
+source("utility.R")
+library(fields)
+library(numDeriv)
 
-A <- 0.05; B1 <- -1; B2 <- 0.5
-DataSetLength <- 500
-SimulEstim <- function(seed){
+DATAPATH <- "simulatedData/analyticCase/"
+
+doubleEstimation <- function(seed, covArray, dataSetLength){
   set.seed(seed)
-  CompleteSample <- SimulationProcess(Start = c(0, 0), Npoints = 5 * 10^3, 
-                                      Delta = 0.01, A, B1, B2, method = "Ozaki")
-  Sel <- sort(sample(floor(seq(1, nrow(CompleteSample), by = 10)), 
-                    replace = F, size = DataSetLength))
+  CompleteSample <- read.table(paste0(DATAPATH, "simAnalyticData_seed", seed, ".txt"),
+                               header = T, sep = ";")
+  Sel <- sort(sample(floor(seq(1, floor(nrow(CompleteSample)/10), by = 20)), 
+                    replace = F, size = dataSetLength))
   xy <- as.matrix(CompleteSample[Sel, c("X1", "X2")])
   time <- CompleteSample[Sel, "Time"]
-  #Array of covariates gradient
-  gradarray <- array(dim = c(length(Sel), 2,  3))
-  gradarray[,,1] <- t(apply(xy, 1, GradC1)) ; gradarray[,,2] <- t(apply(xy, 1, GradC2))
-  gradarray[,,3] <- t(apply(xy, 1, GradDist))
-  #Array of covariates hessian
-  jacobarray <- array(dim = c(length(Sel), 4,  3))
-  jacobarray[,,1] <- t(apply(xy, 1, HessC1)) ; jacobarray[,,2] <- t(apply(xy, 1, HessC2))
-  jacobarray[,,3] <- t(apply(xy, 1, HessDist))
-  CFE <- function(ParamVector){
+  #True array of covariates gradient
+  trueGradArray <- array(dim = c(length(Sel), 2,  3))
+  trueGradArray[,, 1] <- t(apply(xy, 1, GradC1)) ; trueGradArray[,,2] <- t(apply(xy, 1, GradC2))
+  trueGradArray[,, 3] <- t(apply(xy, 1, GradDist))
+  #True array of covariates hessian
+  trueJacobArray <- array(dim = c(length(Sel), 4,  3))
+  trueJacobArray[,, 1] <- t(apply(xy, 1, HessC1)) ; trueJacobArray[,,2] <- t(apply(xy, 1, HessC2))
+  trueJacobArray[,, 3] <- t(apply(xy, 1, HessDist))
+  #Interpolated covArray
+  interpGradArray <- array(dim = c(length(Sel), 2,  3))
+  interpGradArray[,, 3] <- trueGradArray[,, 3]#The gradient for distance can always be computed exactly
+  interpGradArray[,, 1:2] <- covGrad(xy, xGrid, yGrid, covArray)
+  #Interpolated covArray
+  interpJacobArray <- array(dim = c(length(Sel), 4,  3))
+  interpJacobArray[,, 3] <- trueJacobArray[,, 3]#The gradient for distance can always be computed exactly
+  interpJacobArray[,, 1:2] <- covHessian(xy, xGrid, yGrid, covArray)
+  objFunTrueArrays <- function(ParamVector){
     nllkLang(beta = ParamVector, xy = xy, time = time, 
-             gradarray = gradarray)
+             gradarray = trueGradArray, hessarray = trueJacobArray, method = "ozaki")
   }
-  CFO <- function(ParamVector){
+  objFunInterpArrays <- function(ParamVector){
     nllkLang(beta = ParamVector, xy = xy, time = time, 
-             gradarray = gradarray, hessarray = jacobarray, method = "ozaki")
+             gradarray = interpGradArray, hessarray = interpJacobArray, method = "ozaki")
   }
-  # fitE <- nlminb(start=c(0, 0, 0), objective = CFE,
-  #                control=list(trace = 0))
-  fitE <- eulerLSE(xy = xy, time = time, gradarray = gradarray)
-  fitO <- nlminb(start = c(0, 0, 0), objective = CFO, 
+  fitEulerTrueGrad <- eulerLSE(xy = xy, time = time, gradarray = trueGradArray)
+  fitEulerInterpGrad <- eulerLSE(xy = xy, time = time, gradarray = interpGradArray)
+  fitOzTrueHess <- nlminb(start = c(0, 0, 0), objective = objFunTrueArrays, 
                  control = list(trace = 0, x.tol = 10^(-4)))
-  return(list(Data = CompleteSample[Sel, ], fitE = fitE, fitO = fitO))
+  fitOzInterpHess <- nlminb(start = c(0, 0, 0), objective = objFunInterpArrays, 
+                          control = list(trace = 1, x.tol = 10^(-4)))
+  result <- list(fitEulTG = fitEulerTrueGrad, fitEulIG = fitEulerInterpGrad,
+              fitOzTG = fitOzTrueHess, fitOzIG = fitOzInterpHess,
+              selectedLines = Sel)
+  save(result, file = paste0(DATAPATH, "tmp", seed, ".RData"))
+  return(result)
 }
 library(parallel)
-AllResults <- mclapply(1:30, SimulEstim, mc.cores = 3)
-save(AllResults, file = "Results_OzakiEulerComparison_Analytics.RData")
+trueParams <- c(B1 = -1, B2 = 0.5, A = 0.05)
+dataSetLength <- 300
+xGrid <- yGrid <- seq(-15, 15, length = 8)
+covariateSampling <- as.matrix(expand.grid(xGrid, yGrid))
+covariateArray <- array(dim = c(length(xGrid), length(yGrid),  2))
+covariateArray[,, 1] <- matrix(apply(covariateSampling, 1, ScalC1), nrow = length(xGrid)); 
+covariateArray[,, 2] <- matrix(apply(covariateSampling, 1, ScalC2), nrow = length(xGrid))
 
+T1 <- Sys.time()
+AllResults <- mclapply(myProb, function(i) doubleEstimation(i, covArray = covariateArray, dataSetLength = dataSetLength), mc.cores = 3)
+T2 <- Sys.time()
+save(AllResults, file = "Results_OzakiEulerComparison_AnalyticsAndGradient.RData")
