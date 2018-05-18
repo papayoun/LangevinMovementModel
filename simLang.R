@@ -11,7 +11,7 @@
 #' @param ygrid Grid on which the covariates are known
 #' @param covarray Array of values of the covariates at the points given by
 #' xgrid and ygrid, of dimensions (length(xgrid),length(ygrid),length(beta)).
-simLang <- function(beta, speed, time, xy0, xgrid, ygrid, covarray) {
+simLang <- function(beta, speed=1, time, xy0, xgrid, ygrid, covarray) {
     nbObs <- length(time)
     xy <- matrix(0,nbObs,2)
     xy[1,] <- xy0
