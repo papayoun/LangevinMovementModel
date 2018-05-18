@@ -14,9 +14,20 @@ source("OzakiFunctions.R")
 #' "euler" (default) or "ozaki".
 #' 
 #' @return Negative log-likelihood
-nllkLang <- function(beta, xy, time, ID = NULL, gradarray, 
+nllkLang <- function(par, xy, time, ID = NULL, gradarray, 
                      hessarray = NULL, method = "euler") {
     n <- nrow(xy)
+    
+    # unpack parameters
+    ncov <- dim(gradarray)[3]
+    if(length(par)==ncov+1) {
+        beta <- par[1:ncov]
+        speed <- exp(par[ncov+1])
+    } else if(length(par)==ncov) {
+        beta <- par
+        speed <- 1
+    }
+    
     # multiply gradients by beta coefficients
     gradmat <- 0.5 * apply(gradarray, 2, function(mat) mat %*% beta)
     
@@ -32,7 +43,7 @@ nllkLang <- function(beta, xy, time, ID = NULL, gradarray,
     dt <- time[-i1] - time[-i2]
     
     if(method == "euler") {
-        llk <- sum(dnorm(xy[-i1,], xy[-i2,] + dt*gradmat[-i2,], sqrt(dt), log=TRUE))
+        llk <- sum(dnorm(xy[-i1,], xy[-i2,] + speed * dt * gradmat[-i2,], sqrt(speed * dt), log=TRUE))
     }
     if(method == "ozaki"){
         hessmat <- 0.5 * apply(hessarray, 2, function(mat) mat %*% beta)
