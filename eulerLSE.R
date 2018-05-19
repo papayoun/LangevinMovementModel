@@ -41,7 +41,7 @@ eulerLSE <- function(ID=NULL, xy, time, gradarray, withspeed=TRUE)
         # estimate speed
         fitted <- t(T*t(D)) %*% Bhat
         SSE <- sum((Y-fitted)^2)
-        speed <- SSE/(2*(n-1)-length(Bhat)-1)        
+        speed <- SSE/(2*(n-1)-length(Bhat))        
 
         est <- c(Bhat/speed,speed)
         var <- DTTDinv/speed
