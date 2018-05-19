@@ -1,7 +1,8 @@
 source("OzakiFunctions.R")
 #' Negative log-likelihood function for Langevin movement model
 #' 
-#' @param beta Parameters of the utilisation distribution
+#' @param par Vector of (working) model parameters: parameters of the 
+#' utilisation distribution, and speed parameter.
 #' @param xy Matrix of observed locations (two columns: x, y)
 #' @param time Vector of times of observations
 #' @param gradarray Three-dimensional array of gradients of covariate fields. 
