@@ -13,3 +13,4 @@ ReferenceSimulatedDataSet.txt
 archive/SimulatedSample.txt
 *.RData
 simulatedData/*
+sealion_analysis/aleut_habitat.*
