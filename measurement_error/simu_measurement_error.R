@@ -68,9 +68,16 @@ for(zoo in 1:ntrack) {
 colnames(data) <- c("ID","x","y","time")
 
 ID <- data[,"ID"]
-xy <- data[,c("x","y")] + rnorm(2*nrow(data), 0, 0.5)
+xy <- data[,c("x","y")] 
 time <- data[,"time"]
 
+# Add measurement error to the observations
+sigma <- 0.5
+xy <- xy + rnorm(2*nrow(data), 0, sigma)
+
+###############
+## Fit model ##
+###############
 # Evaluate covariate gradients at observed locations
 gradarray <- covGrad(xy, xgrid, ygrid, covarray)
 
