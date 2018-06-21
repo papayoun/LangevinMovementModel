@@ -9,6 +9,8 @@ TestingFile.R
 *.pdf
 *.aux
 *.gz
+*.grd
+*.gri
 ReferenceSimulatedDataSet.txt
 archive/SimulatedSample.txt
 *.RData
