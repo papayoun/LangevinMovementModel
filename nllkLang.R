@@ -1,7 +1,8 @@
 source("OzakiFunctions.R")
 #' Negative log-likelihood function for Langevin movement model
 #' 
-#' @param beta Parameters of the utilisation distribution
+#' @param par Vector of (working) model parameters: parameters of the 
+#' utilisation distribution, and speed parameter.
 #' @param xy Matrix of observed locations (two columns: x, y)
 #' @param time Vector of times of observations
 #' @param gradarray Three-dimensional array of gradients of covariate fields. 
@@ -14,11 +15,20 @@ source("OzakiFunctions.R")
 #' "euler" (default) or "ozaki".
 #' 
 #' @return Negative log-likelihood
-
-
 nllkLang <- function(beta, xy, time, ID = NULL, gradarray, 
                      hessarray = NULL, method = "euler", gamma = 1) {
     n <- nrow(xy)
+    
+    # unpack parameters
+    ncov <- dim(gradarray)[3]
+    if(length(par)==ncov+1) {
+        beta <- par[1:ncov]
+        speed <- exp(par[ncov+1])
+    } else if(length(par)==ncov) {
+        beta <- par
+        speed <- 1
+    }
+    
     # multiply gradients by beta coefficients
     gradmat <- 0.5 * gamma * apply(gradarray, 2, function(mat) mat %*% beta)
     
