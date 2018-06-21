@@ -14,11 +14,13 @@ source("OzakiFunctions.R")
 #' "euler" (default) or "ozaki".
 #' 
 #' @return Negative log-likelihood
+
+
 nllkLang <- function(beta, xy, time, ID = NULL, gradarray, 
-                     hessarray = NULL, method = "euler") {
+                     hessarray = NULL, method = "euler", gamma = 1) {
     n <- nrow(xy)
     # multiply gradients by beta coefficients
-    gradmat <- 0.5 * apply(gradarray, 2, function(mat) mat %*% beta)
+    gradmat <- 0.5 * gamma * apply(gradarray, 2, function(mat) mat %*% beta)
     
     # only one track
     if(is.null(ID))
@@ -32,10 +34,10 @@ nllkLang <- function(beta, xy, time, ID = NULL, gradarray,
     dt <- time[-i1] - time[-i2]
     
     if(method == "euler") {
-        llk <- sum(dnorm(xy[-i1,], xy[-i2,] + dt*gradmat[-i2,], sqrt(dt), log=TRUE))
+        llk <- sum(dnorm(xy[-i1,], xy[-i2,] + dt * gradmat[-i2,], sqrt(gamma * dt), log=TRUE))
     }
     if(method == "ozaki"){
-        hessmat <- 0.5 * apply(hessarray, 2, function(mat) mat %*% beta)
+        hessmat <- 0.5 * gamma * apply(hessarray, 2, function(mat) mat %*% beta)
         Means <- getOzakiMean(xy, dt, gradmat, hessmat) # matrix of size (n-1) * 2
         CovsInv <- getOzakiCovariance(xy, dt, gradmat, hessmat, Inv = T) # matrix of size (n-1) * 4
         DetsInv <- apply(CovsInv, 1, vecDetM) # compute determinant to spot potential problems
@@ -51,7 +53,13 @@ nllkLang <- function(beta, xy, time, ID = NULL, gradarray,
     }
     return(-llk)
 }
-
+nllkLangForOptim <- function(vecPars, xy, time, ID = NULL, gradarray, 
+                             hessarray = NULL, method = "euler"){
+  driftParams <- vecPars[-length(vecPars)]
+  diffusionParam <- vecPars[length(vecPars)]
+  nllkLang(beta = driftParams, gamma = diffusionParam, xy = xy, time =  time, ID =  ID,
+           gradarray = gradarray, hessarray = hessarray, method = method)
+}
 eulerEstimate <- function(xy, time, gradarray){
   n <- nrow(xy)
   d <- dim(gradarray)[3] # Number of covariates

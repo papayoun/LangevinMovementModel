@@ -49,13 +49,13 @@ GradDist <- function(x) - 2 * x
 HessDist <- function(x) as.numeric(diag(- 2, 2))
 HessC1 <- function(x) HessFun(x, Cs = CP1, Ds = DP1, Oms = FP1, I = IP1)
 HessC2 <- function(x) HessFun(x, Cs = CP2, Ds = DP2, Oms = FP2, I = IP2)
-MeanStepEuler <- function(x, Delta, Alpha, Beta1, Beta2){
-  return(x + (0.5 * Delta * (Alpha * GradDist(x)
+MeanStepEuler <- function(x, Delta, Alpha, Beta1, Beta2, gamma = 1){
+  return(x + (0.5 * gamma * Delta * (Alpha * GradDist(x)
                              + Beta1 * GradC1(x) 
                              + Beta2 * GradC2(x))))
 }
-OzakiMoments <- function(x, Delta, Alpha, Beta1, Beta2){
-  HessVec <- 0.5 * (Alpha * HessDist(x) + Beta1 * HessC1(x) + Beta2 * HessC2(x))
+OzakiMoments <- function(x, Delta, Alpha, Beta1, Beta2, gamma = 1){
+  HessVec <- 0.5 * gamma * (Alpha * HessDist(x) + Beta1 * HessC1(x) + Beta2 * HessC2(x))
   HessVecInv <- vecSolveM(HessVec)
   expJMinusId <- vecExpM(HessVec * Delta) - c(1, 0, 0, 1)
   GradVec <- 0.5 *  (Alpha * GradDist(x)
@@ -64,39 +64,40 @@ OzakiMoments <- function(x, Delta, Alpha, Beta1, Beta2){
   OzMean <- x + vecMtimesV(expJMinusId, vecMtimesV(HessVecInv, GradVec))
   JksJ <- MksumM(HessVec) # Kronecker sum
   JksJinv <- MksumMInv(HessVec) # Inverse Kronecker sum
-  OzCov <- matrix(JksJinv %*% (expm::expm(JksJ * Delta) - diag(1, 4)) %*% c(1, 0, 0, 1),
+  OzCov <- matrix(JksJinv %*% (expm::expm(JksJ * Delta) - diag(1, 4)) %*% c(gamma, 0, 0, gamma),
                   ncol = 2, nrow = 2)
   return(list(Mean = OzMean, Cov = OzCov))
 } 
 
 
-rNextObs <- function(x0, Delta, Alpha, Beta1, Beta2, method = "Euler"){
+rNextObs <- function(x0, Delta, Alpha, Beta1, Beta2, gamma = 1, method = "Euler"){
   if(method == "Euler"){
     return(MeanStepEuler(x = x0, Delta = Delta, Alpha =  Alpha,
-                         Beta1 = Beta1, Beta2 = Beta2) 
-           + rnorm(2, 0, sqrt(Delta))  )
+                         Beta1 = Beta1, Beta2 = Beta2, gamma = gamma)
+           + rnorm(2, 0, sqrt(Delta * gamma))  )
   }
   if(method == "Ozaki"){
     OM <- OzakiMoments(x = x0, Delta = Delta, Alpha =  Alpha,
-                       Beta1 = Beta1, Beta2 = Beta2) 
+                       Beta1 = Beta1, Beta2 = Beta2, gamma = gamma) 
     return(rmvnorm(1, OM$Mean, OM$Cov))
   }
 }
+# 
+# dNextObs <- function(y, x0, Delta, Alpha, Beta1, Beta2, gamma = 1, Log = F){
+#   Mn <- x0 + MeanStep(x0, Delta, Alpha =  Alpha, Beta1 = Beta1, Beta2 = Beta2)
+#   if(Log)
+#     return(logdmvnorm(y, mu = Mn, sigma = diag(Delta, length(x0))))
+#   else
+#     return(dmvnorm(y, mu = Mn, sigma = diag(Delta, length(x0))))
+# }
 
-dNextObs <- function(y, x0, Delta, Alpha, Beta1, Beta2, Log = F){
-  Mn <- x0 + MeanStep(x0, Delta, Alpha =  Alpha, Beta1 = Beta1, Beta2 = Beta2)
-  if(Log)
-    return(logdmvnorm(y, mu = Mn, sigma = diag(Delta, length(x0))))
-  else
-    return(dmvnorm(y, mu = Mn, sigma = diag(Delta, length(x0))))
-}
-
-SimulationProcess <- function(Start, Npoints, Delta, A, B, C, method = "Euler"){
+SimulationProcess <- function(Start, Npoints, Delta, A, B, C, gamma = 1, method = "Euler"){
   Times <- seq(0, (Npoints - 1) * Delta, by = Delta)
   OutputPositions = matrix(Start, ncol = 2, byrow = T, nrow = Npoints)
   for(i in 2:Npoints){
     OutputPositions[i, ] <- rNextObs(OutputPositions[i - 1, ], 
-                                     Delta,Alpha =  A,Beta1 =  B,Beta2 =  C, 
+                                     Delta,Alpha =  A, Beta1 =  B, Beta2 =  C,
+                                     gamma = gamma,
                                      method = method)
   }
   Output <- cbind(OutputPositions, Times)

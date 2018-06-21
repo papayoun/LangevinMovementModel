@@ -34,7 +34,9 @@ doubleEstimation <- function(seed, covArray, dataSetLength){
   interpJacobArray[,, 3] <- trueJacobArray[,, 3]#The gradient for distance can always be computed exactly
   interpJacobArray[,, 1:2] <- covHessian(xy, xGrid, yGrid, covArray)
   objFunTrueArrays <- function(ParamVector){
-    nllkLang(beta = ParamVector, xy = xy, time = time, 
+    # nllkLang(beta = ParamVector, xy = xy, time = time, 
+    #          gradarray = trueGradArray, hessarray = trueJacobArray, method = "ozaki")
+    nllkLangForOptim(vecPars = ParamVector, xy = xy, time = time, 
              gradarray = trueGradArray, hessarray = trueJacobArray, method = "ozaki")
   }
   objFunInterpArrays <- function(ParamVector){
@@ -43,7 +45,7 @@ doubleEstimation <- function(seed, covArray, dataSetLength){
   }
   fitEulerTrueGrad <- eulerLSE(xy = xy, time = time, gradarray = trueGradArray)
   fitEulerInterpGrad <- eulerLSE(xy = xy, time = time, gradarray = interpGradArray)
-  fitOzTrueHess <- nlminb(start = c(0, 0, 0), objective = objFunTrueArrays, 
+  fitOzTrueHess <- nlminb(start = c(0, 0, 0, 1), objective = objFunTrueArrays, 
                  control = list(trace = 0, x.tol = 10^(-4)))
   fitOzInterpHess <- nlminb(start = c(0, 0, 0), objective = objFunInterpArrays, 
                           control = list(trace = 1, x.tol = 10^(-4)))
