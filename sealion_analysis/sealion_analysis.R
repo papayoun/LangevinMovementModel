@@ -52,7 +52,7 @@ covlist <- list(bathy = hbfull$bathy,
 for(i in 1:length(covlist)) {
     extent(covlist[[i]]) <- extent(c(xmin(covlist[[i]]), xmax(covlist[[i]]), 
                                      ymin(covlist[[i]]), ymax(covlist[[i]]))/1000)
-    projection(covlist[[i]]) <- gsub("units=m", "units=km", projection(covlist[[i]]))    
+    projection(covlist[[i]]) <- gsub("units=m", "units=km", projection(covlist[[i]]))
 }
 
 # negative values in Fig 2 of Wilson et al.
