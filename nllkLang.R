@@ -15,7 +15,7 @@ source("OzakiFunctions.R")
 #' "euler" (default) or "ozaki".
 #' 
 #' @return Negative log-likelihood
-nllkLang <- function(beta, xy, time, ID = NULL, gradarray, 
+nllkLang <- function(par, xy, time, ID = NULL, gradarray, 
                      hessarray = NULL, method = "euler", gamma = 1) {
     n <- nrow(xy)
     
