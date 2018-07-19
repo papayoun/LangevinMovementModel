@@ -19,7 +19,7 @@ source("eulerLSE.R")
 set.seed(1)
 lim <- c(-50,50,-50,50) # limits of map
 res <- 1 # grid resolution
-rho <- c(4,10) # correlation coefficients
+rho <- c(10,10) # correlation coefficients
 ncov <- 2
 covlist <- list()
 for(i in 1:ncov)
@@ -34,8 +34,7 @@ ygrid <- seq(lim[3]+res/2,lim[4]-res/2,by=res)
 # mu <- c((lim[1]+lim[2])/2,(lim[3]+lim[4])/2) # centre of map
 # dist2 <- (xygrid[,1]-mu[1])^2+(xygrid[,2]-mu[2])^2
 # dist2 <- dist2/max(dist2) # scale to [0,1]
-# dist2XYZ <- cbind(xygrid,dist2)
-# covlist[[ncov+1]] <- rasterFromXYZ(dist2XYZ)
+# covlist[[ncov+1]] <- rasterFromXYZ(cbind(xygrid,dist2))
 # ncov <- length(covlist)
 
 # Store covariates in an array 
@@ -45,7 +44,7 @@ for(i in 1:length(covlist))
     covarray[,,i] <- t(apply(as.matrix(covlist[[i]]),2,rev))
 
 # Define artificial RSF
-beta <- c(4, -2) # true parameter values (used in simulations)
+beta <- c(2, 4) # true parameter values (used in simulations)
 rsfRaster <- 0
 for(i in 1:length(covlist))
     rsfRaster <- rsfRaster + beta[i]*covlist[[i]]
@@ -54,58 +53,104 @@ rsfRaster <- exp(rsfRaster)
 ###################
 ## Simulate data ##
 ###################
-ntrack <- 15
-dt <- 0.1
-Tmax <- 100
-speed <- 1.5
+Tmax <- 250
+dt <- 0.01
+ntrack <- 200
+speed <- 0.5
 time <- seq(0, Tmax, by = dt)
-data <- NULL
+alldata <- NULL
 
 set.seed(1)
-for(zoo in 1:ntrack) {
-    track <- simLang(beta=beta, speed=speed, time=time, xy0=runif(2, -10, 10), 
-                     xgrid=xgrid, ygrid=ygrid, covarray=covarray)
-    data <- rbind(data, cbind(rep(zoo,nrow(track)),track,time))
+zoo <- 1
+t0 <- Sys.time()
+while(zoo <= ntrack) {
+    cat("Simulating track ",zoo,"/",ntrack,"...\n",sep="")
+    tryCatch({
+        track <- simLang(beta=beta, speed=speed, time=time, xy0=runif(2, -20, 20), 
+                         xgrid=xgrid, ygrid=ygrid, covarray=covarray)
+        alldata <- rbind(alldata, cbind(rep(zoo,nrow(track)),track,time))
+        zoo <- zoo + 1
+    }, error = function(e) {
+        cat("Simulated track reached limit of map. Started new track.\n")
+    })
+    cat("Time elapsed:",Sys.time()-t0,"\n")
 }
-colnames(data) <- c("ID","x","y","time")
+colnames(alldata) <- c("ID","x","y","time")
 
-# # save full simulated data set before thinning
-# alldata <- data
-# # thin
-# nobs <- nrow(alldata)
-# ind <- sort(sample(1:nrow(alldata),size=nobs,replace=FALSE))
-# data <- alldata[ind,]
+##############
+## Estimate ##
+##############
+thin <- c(1,2,5,10,25,50,100)
+allpar <- matrix(NA, length(thin), 3)
+allvar <- matrix(NA, length(thin), 2)
+for(i in 1:length(thin)) {
+    cat("Iteration",i,"/",length(thin),"\n")
+    # thin
+    ind <- seq(1, nrow(alldata), by=thin[i])
+    thindata <- alldata[ind,]
+    
+    # keep 50000 locations
+    data <- NULL
+    for(id in unique(thindata[,"ID"]))
+        data <- rbind(data, thindata[which(thindata[,"ID"]==id)[1:250],])
+    
+    ID <- data[,"ID"]
+    xy <- data[,c("x","y")]
+    time <- data[,"time"]
+    # derive covariate gradients at observed locations
+    gradarray <- covGrad(xy, xgrid, ygrid, covarray)
 
-ID <- data[,"ID"]
-xy <- data[,c("x","y")]
-time <- data[,"time"]
+    ## Fit UD with Euler discretization
+    lse <- eulerLSE(ID=ID, time=time, xy=xy, gradarray=gradarray)
 
-plot(rsfRaster, col=viridis(1e3))
-points(xy, pch=20, cex=0.5)
+    allpar[i,] <- lse$est
+    allvar[i,] <- diag(lse$var)
+}
 
-# Evaluate covariate gradients at observed locations
-gradarray <- covGrad(xy, xgrid, ygrid, covarray)
+# results: beta1
+plot(thin*dt, allpar[,1], log="x", xlab="interval", ylab=expression(beta[1]), ylim=c(-5,10))
+lCI <- allpar[,1] - 1.96*sqrt(allvar[,1])
+uCI <- allpar[,1] + 1.96*sqrt(allvar[,1])
+segments(x0=thin*dt, y0=lCI, x1=thin*dt, y1=uCI)
+abline(h=0, lty=2)
+abline(h=2, lty=2, col=2)
 
-######################################
-## Fit UD with Euler discretization ##
-######################################
-lse <- eulerLSE(ID=ID, time=time, xy=xy, gradarray=gradarray)
+# results: beta2
+plot(thin*dt, allpar[,2], log="x", xlab="interval", ylab=expression(beta[2]), ylim=c(0,10))
+lCI <- allpar[,2] - 1.96*sqrt(allvar[,2])
+uCI <- allpar[,2] + 1.96*sqrt(allvar[,2])
+segments(x0=thin*dt, y0=lCI, x1=thin*dt, y1=uCI)
+abline(h=0, lty=2)
+abline(h=4, lty=2, col=2)
 
-# 95% CI
-cbind(lse$est[1:ncov] - 1.96*sqrt(diag(lse$var)),
-      lse$est[1:ncov],
-      lse$est[1:ncov] + 1.96*sqrt(diag(lse$var)))
+# results: speed
+plot(thin*dt, allpar[,3], log="x", xlab="interval", ylab="speed", ylim=c(0,0.5))
+abline(h=0.5, lty=2, col=2)
 
-# Compute estimated RSF
-betaMLE <- lse$est[1:ncov]
-rsfRasterMLE <- 0
-for(i in 1:length(covlist))
-    rsfRasterMLE <- rsfRasterMLE + betaMLE[i]*covlist[[i]]
-rsfRasterMLE <- exp(rsfRasterMLE)
-plot(rsfRasterMLE, col=viridis(1e3))
-
-# Plot estimated utilisation vs true utilisation for each grid cell 
-# (should align with identity line)
-plot(values(rsfRaster)/sum(values(rsfRaster)),
-     values(rsfRasterMLE)/sum(values(rsfRasterMLE)))
-abline(0,1,col=2)
+# # # 95% CI
+# # cbind(lse$est[1:ncov] - 1.96*sqrt(diag(lse$var)),
+# #       lse$est[1:ncov],
+# #       lse$est[1:ncov] + 1.96*sqrt(diag(lse$var)))
+# # 
+# # # Compute estimated RSF
+# # betaMLE <- lse$est[1:ncov]
+# # rsfRasterMLE <- 0
+# # for(i in 1:length(covlist))
+# #     rsfRasterMLE <- rsfRasterMLE + betaMLE[i]*covlist[[i]]
+# # rsfRasterMLE <- exp(rsfRasterMLE)
+# # plot(rsfRasterMLE, col=viridis(1e3))
+# # 
+# # # Plot estimated utilisation vs true utilisation for each grid cell 
+# # # (should align with identity line)
+# # plot(values(rsfRaster)/sum(values(rsfRaster)),
+# #      values(rsfRasterMLE)/sum(values(rsfRasterMLE)))
+# # abline(0,1,col=2)
+# 
+# # plot true against estimated
+# library(localGibbs)
+# r <- rastRSF(allpar[10,1:3],covlist)
+# x <- values(rsfRaster)/sum(values(rsfRaster))
+# y <- values(r)/sum(values(r))
+# plot(x, y, pch=20, cex=0.2, xlab="True", ylab="Estimated", main=expression(Delta==10),
+#      xlim=range(x,y), ylim=range(x,y))
+# abline(0,1,lty=2,col=2)
