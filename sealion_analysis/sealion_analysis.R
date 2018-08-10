@@ -6,9 +6,10 @@ library(expm)
 library(viridis)
 library(ggplot2)
 library(gridExtra)
-source("../utility.R")
-source("../eulerLSE.R")
-
+# source("../utility.R")
+source("utility.R")
+# source("../eulerLSE.R")
+source("eulerLSE.R")
 ####################
 ## Prepare tracks ##
 ####################
@@ -103,7 +104,7 @@ do.call("grid.arrange",covplot)
 gradarray <- covGrad(xy, xgrid, ygrid, covarray)
 
 # Fit model
-lse <- eulerLSE(ID=ID, time=time, xy=xy, gradarray=gradarray)
+lse <- eulerLSE(ID=ID, time=time, xy=xy, gradarray=gradarray, withspeed = F)
 
 # 95% CI
 cbind(lse$est[1:ncov]-1.96*sqrt(diag(lse$var)),
