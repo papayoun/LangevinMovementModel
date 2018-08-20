@@ -80,3 +80,26 @@ eulerEstimate <- function(xy, time, gradarray){
   betaEstimation <- estimatedCovariance %*% t(designMatrix) %*% incrementVector;
   return(list(coefficients = as.numeric(betaEstimation), covariance = estimatedCovariance))
 }
+
+eulerEstimateUnknownGamma <- function(xy, time, gradarray){
+  n <- nrow(xy)
+  J <- dim(gradarray)[3] # Number of covariates
+  timeIncrementMatrix <- rep(diff(time), 2)# 2 * (n - 1) * 2 * (n - 1) matrix
+  designMatrix <- 0.5 * rbind(gradarray[-n , 1 , 1:J], gradarray[-n , 2 , 1:J])# 2 (n - 1) * d matrix
+  TtimesD <- timeIncrementMatrix * designMatrix
+  incrementVector <- matrix(apply(xy, 2, diff)  , ncol = 1)# 2 * (n - 1) * d matrix
+  observations <- matrix(apply(xy, 2, function(z) diff(z) / sqrt(diff(time)))  , ncol = 1)# 2 * (n - 1) * J matrix
+  estimatedCovariance <- solve(t(designMatrix) %*% TtimesD)
+  estimatedNu <- estimatedCovariance %*% t(designMatrix) %*% incrementVector;
+  degreeFreedom <- 2 * (n - 1) - J
+  estimatedGamma <- colSums((observations -  sqrt(timeIncrementMatrix) * designMatrix %*% estimatedNu)^2) / degreeFreedom
+  estimatedBeta <- estimatedNu / estimatedGamma * (degreeFreedom - 2) / degreeFreedom
+  estimatedBetaCovariance <- (2 * estimatedBeta %*% t(estimatedBeta) / (degreeFreedom - 4) 
+                              + estimatedCovariance / estimatedGamma * (1 + 2 / (degreeFreedom - 4)))
+  confidenceIntervals <- t(sapply(1:length(estimatedBeta), function(j){
+    estimatedBeta[j] + c(1, -1) * qnorm(0.025) *  sqrt(estimatedBetaCovariance[j, j])
+  }))
+  rownames(confidenceIntervals) <- rownames(estimatedBetaCovariance) <- colnames(estimatedBetaCovariance) <- paste0("beta", 1:J)
+  return(list(betaHat = as.numeric(estimatedBeta), gammaHat  = estimatedGamma,
+              betaHatCovariance = estimatedBetaCovariance, betaHat95CI = confidenceIntervals))
+}

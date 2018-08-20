@@ -18,11 +18,11 @@ jacobarray[,,1] <- t(apply(xy, 1, HessC1))
 jacobarray[,,2] <- t(apply(xy, 1, HessC2))
 
 CFE <- function(ParamVector){
-  nllkLang(beta = ParamVector, xy = xy, time = time, 
+  nllkLang(par = ParamVector, xy = xy, time = time, 
            gradarray = gradarray, jacobarray)
 }
 CFO <- function(ParamVector){
-  nllkLang(beta = ParamVector, xy = xy, time = time, 
+  nllkLang(par = ParamVector, xy = xy, time = time, 
            gradarray = gradarray, jacobarray, method = "ozaki")
 }
 # fit <- nlminb(start=c(-1, 0.5, 0.05),objective=ContrastFunction,

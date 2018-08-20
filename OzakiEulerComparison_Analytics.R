@@ -13,7 +13,7 @@ doubleEstimation <- function(seed, covArray, dataSetLength){
   set.seed(seed)
   CompleteSample <- read.table(paste0(DATAPATH, "simAnalyticData_seed", seed, ".txt"),
                                header = T, sep = ";")
-  Sel <- sort(sample(floor(seq(1, floor(nrow(CompleteSample)/10), by = 20)), 
+  Sel <- sort(sample(floor(seq(1, floor(nrow(CompleteSample)), by = 10)), 
                     replace = F, size = dataSetLength))
   xy <- as.matrix(CompleteSample[Sel, c("X1", "X2")])
   time <- CompleteSample[Sel, "Time"]
@@ -40,7 +40,7 @@ doubleEstimation <- function(seed, covArray, dataSetLength){
              gradarray = trueGradArray, hessarray = trueJacobArray, method = "ozaki")
   }
   objFunInterpArrays <- function(ParamVector){
-    nllkLang(beta = ParamVector, xy = xy, time = time, 
+    nllkLang(par = ParamVector, xy = xy, time = time, 
              gradarray = interpGradArray, hessarray = interpJacobArray, method = "ozaki")
   }
   fitEulerTrueGrad <- eulerLSE(xy = xy, time = time, gradarray = trueGradArray)
@@ -65,6 +65,6 @@ covariateArray[,, 1] <- matrix(apply(covariateSampling, 1, ScalC1), nrow = lengt
 covariateArray[,, 2] <- matrix(apply(covariateSampling, 1, ScalC2), nrow = length(xGrid))
 
 T1 <- Sys.time()
-AllResults <- mclapply(myProb, function(i) doubleEstimation(i, covArray = covariateArray, dataSetLength = dataSetLength), mc.cores = 3)
+AllResults <- mclapply(1:3, function(i) doubleEstimation(i, covArray = covariateArray, dataSetLength = dataSetLength), mc.cores = 3)
 T2 <- Sys.time()
 save(AllResults, file = "Results_OzakiEulerComparison_AnalyticsAndGradient.RData")

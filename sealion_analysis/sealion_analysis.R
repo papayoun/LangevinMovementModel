@@ -104,23 +104,24 @@ do.call("grid.arrange",covplot)
 gradarray <- covGrad(xy, xgrid, ygrid, covarray)
 
 # Fit model
-lse <- eulerLSE(ID=ID, time=time, xy=xy, gradarray=gradarray, withspeed = F)
+selectedID <- ID %in% c(1)
+selectedCovariate <- (1:4) %in% c(1, 2, 3, 4)
+lse <- eulerLSE(ID = ID[selectedID], time = time[selectedID], xy = xy[selectedID, ], 
+                gradarray = gradarray[selectedID, , selectedCovariate, drop = F], withspeed = T)
 
-# 95% CI
-cbind(lse$est[1:ncov]-1.96*sqrt(diag(lse$var)),
-      lse$est[1:ncov],
-      lse$est[1:ncov]+1.96*sqrt(diag(lse$var)))
-
+significantCovariate <- which(apply(lse$betaHat95CI, 1, function(x) diff(sign(x)) == 0))
 # Compute estimated RSF
-betaMLE <- lse$est[1:ncov]
-rsfRasterMLE <- 0
-for(i in 1:length(covlist))
-    rsfRasterMLE <- rsfRasterMLE + betaMLE[i]*covlist[[i]]
+betaMLE <- lse$betaHat
+if(length(significantCovariate > 0)){
+  rsfRasterMLE <- Reduce("+", lapply(significantCovariate, function(i){
+    betaMLE[i] * covlist[[i]]
+  }))
+}
 rsfRasterMLE <- exp(rsfRasterMLE)
 
 # plot estimated RSF
 covmap <- data.frame(coordinates(rsfRasterMLE),
-                     val=values(rsfRasterMLE)/sum(values(rsfRasterMLE)))
-ggplot(covmap,aes(x,y)) + geom_raster(aes(fill=log(val))) +
+                     val = values(rsfRasterMLE) / sum(values(rsfRasterMLE)))
+ggplot(covmap, aes(x,y)) + geom_raster(aes(fill = val)) +
     coord_equal() + scale_fill_viridis(name=expression(log(pi))) +
     geom_point(aes(x,y), data=xydf, size=0.3)

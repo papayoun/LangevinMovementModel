@@ -1,5 +1,5 @@
-source("ExampleSimulationFunctionsAndParameters.R")
-CompleteSample <- read.table("SimulatedSample.txt", header = T)
+# source("ExampleSimulationFunctionsAndParameters.R")
+CompleteSample <- read.table("archive/SimulatedSample.txt", header = T)
 
 FigHeight <- 600
 FigWidth <- 800

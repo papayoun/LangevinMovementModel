@@ -49,6 +49,16 @@ GradDist <- function(x) - 2 * x
 HessDist <- function(x) as.numeric(diag(- 2, 2))
 HessC1 <- function(x) HessFun(x, Cs = CP1, Ds = DP1, Oms = FP1, I = IP1)
 HessC2 <- function(x) HessFun(x, Cs = CP2, Ds = DP2, Oms = FP2, I = IP2)
+
+UDMap <- function(x, Alpha, Beta1, Beta2, log = T){
+  res <- - Alpha * sum(x^2) + Beta1 * ScalC1(x) + Beta2 * ScalC2(x)
+  if(!log)
+    res <- exp(res)
+  return(res)
+}
+
+
+
 MeanStepEuler <- function(x, Delta, Alpha, Beta1, Beta2, gamma = 1){
   return(x + (0.5 * gamma * Delta * (Alpha * GradDist(x)
                              + Beta1 * GradC1(x) 
