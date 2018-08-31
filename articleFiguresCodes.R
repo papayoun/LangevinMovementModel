@@ -70,11 +70,8 @@ xHistLims <- c(0, max(sapply(speedsHist, function(z) max(z$x))))
 plot(xHistLims, yHistLims, main = "Speed distribution", type = "n", ylab = "Density", xlab = "Speed")
 sapply(1:2, function(i) lines(speedsHist[[i]], col = i, lwd = 2))
 legend("topright", bty = "n", col = 1:2, lty = 1, lwd = 2, cex = 2,
-       legend = sapply(gammas, function(gam){
-         g <- expression(gamma~"="~.(gam))
-         myLeg <- bquote(eval(g)~"="~ .(gam))
-         myLeg
-       }))
+       legend  = sapply(gammas, 
+                                 function(gam) as.expression(substitute(gamma~"="~B, list(B = gam)))))
 xlab <- bquote(.(assay) ~ AC50 ~ (mu*M))
 plot(sample1[, 1:2], pch =20, cex = 0.2)
 points(sample2[, 1:2], pch = 20, cex = 0.2, col = "red")
