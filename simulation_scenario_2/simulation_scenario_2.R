@@ -29,14 +29,6 @@ for(i in 1:ncov)
 xgrid <- seq(lim[1]+res/2,lim[2]-res/2,by=res)
 ygrid <- seq(lim[3]+res/2,lim[4]-res/2,by=res)
 
-# # Include squared distance to centre of map as covariate
-# xygrid <- expand.grid(xgrid,ygrid)
-# mu <- c((lim[1]+lim[2])/2,(lim[3]+lim[4])/2) # centre of map
-# dist2 <- (xygrid[,1]-mu[1])^2+(xygrid[,2]-mu[2])^2
-# dist2 <- dist2/max(dist2) # scale to [0,1]
-# covlist[[ncov+1]] <- rasterFromXYZ(cbind(xygrid,dist2))
-# ncov <- length(covlist)
-
 # Store covariates in an array 
 # (note that each layer is rotated, as required by interp.surface)
 covarray <- array(NA, dim = c(length(xgrid),length(ygrid),length(covlist)))
@@ -82,7 +74,7 @@ colnames(alldata) <- c("ID","x","y","time")
 ##############
 thin <- c(1,2,5,10,25,50,100)
 allpar <- matrix(NA, length(thin), 3)
-allvar <- matrix(NA, length(thin), 2)
+allvar <- matrix(NA, length(thin), 3)
 for(i in 1:length(thin)) {
     cat("Iteration",i,"/",length(thin),"\n")
     # thin
@@ -97,18 +89,26 @@ for(i in 1:length(thin)) {
     ID <- data[,"ID"]
     xy <- data[,c("x","y")]
     time <- data[,"time"]
+    
     # derive covariate gradients at observed locations
     gradarray <- covGrad(xy, xgrid, ygrid, covarray)
 
     ## Fit UD with Euler discretization
-    lse <- eulerLSE(ID=ID, time=time, xy=xy, gradarray=gradarray)
-
-    allpar[i,] <- lse$est
-    allvar[i,] <- diag(lse$var)
+    # lse <- eulerLSE(ID=ID, time=time, xy=xy, gradarray=gradarray)
+    # allpar[i,] <- lse$est
+    # allvar[i,] <- diag(lse$var)
+    
+    # Fit by numerical MLE
+    par0 <- c(0, 0, log(1))
+    mod <- optim(par=par0, fn=nllkLang, xy=xy, time=time, ID=ID, gradarray=gradarray,
+                 control=list(trace=1), hessian=TRUE)
+    
+    allpar[i,] <- c(mod$par[1:2], exp(mod$par[3]))
+    allvar[i,] <- diag(solve(mod$hessian))
 }
 
 # results: beta1
-plot(thin*dt, allpar[,1], log="x", xlab="interval", ylab=expression(beta[1]), ylim=c(-5,10))
+plot(thin*dt, allpar[,1], log="x", xlab="interval", ylab=expression(beta[1]), ylim=c(0,8))
 lCI <- allpar[,1] - 1.96*sqrt(allvar[,1])
 uCI <- allpar[,1] + 1.96*sqrt(allvar[,1])
 segments(x0=thin*dt, y0=lCI, x1=thin*dt, y1=uCI)
@@ -116,15 +116,18 @@ abline(h=0, lty=2)
 abline(h=2, lty=2, col=2)
 
 # results: beta2
-plot(thin*dt, allpar[,2], log="x", xlab="interval", ylab=expression(beta[2]), ylim=c(0,10))
+plot(thin*dt, allpar[,2], log="x", xlab="interval", ylab=expression(beta[2]), ylim=c(0,8))
 lCI <- allpar[,2] - 1.96*sqrt(allvar[,2])
 uCI <- allpar[,2] + 1.96*sqrt(allvar[,2])
 segments(x0=thin*dt, y0=lCI, x1=thin*dt, y1=uCI)
 abline(h=0, lty=2)
 abline(h=4, lty=2, col=2)
 
-# results: speed
-plot(thin*dt, allpar[,3], log="x", xlab="interval", ylab="speed", ylim=c(0,0.5))
+# results: gamma
+plot(thin*dt, allpar[,3], log="x", xlab="interval", ylab="gamma", ylim=c(0.48,0.52))
+lCI <- allpar[,3] - 1.96*sqrt(allvar[,3])
+uCI <- allpar[,3] + 1.96*sqrt(allvar[,3])
+segments(x0=thin*dt, y0=lCI, x1=thin*dt, y1=uCI)
 abline(h=0.5, lty=2, col=2)
 
 # # # 95% CI
