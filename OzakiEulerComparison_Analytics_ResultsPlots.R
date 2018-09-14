@@ -1,10 +1,14 @@
-rm(list = ls())
+
+library(ggplot2)
+library(viridis)
+library(parallel)
+library(extrafont)
 source("archive/SimulationFunctions.R")
 source("archive/CovariateParameters.R")
 source("nllkLang.R")
 source("eulerLSE.R")
 source("utility.R")
-library(parallel)
+
 DATAPATH <- "simulatedData/analyticCase/"
 AllResults <- lapply(1:600, function(seed){
   res <-  try(load(paste0(DATAPATH, "tmp", seed, ".RData")))
@@ -13,7 +17,6 @@ AllResults <- lapply(1:600, function(seed){
   else 
     return(result)
 })
-
 
 sampleIndex <- floor(seq(1, 600, length.out = 10))
 sampleData <- do.call(rbind, mclapply(sampleIndex, function(seed){
@@ -36,19 +39,33 @@ getCovariates <-  function(xGrid, yGrid, params = c(A = 0.05, B1 = -1, B2 = 0.5)
   covariateArray
 }
 
-library(extrafont)
-FIGPATH <- "/home/gloaguen/Documents/LangevinWork/overleafProject/figures/"
-png(paste0(FIGPATH, "covariatesAnalytic.png"), height = 600, width = 800)
-par(mfrow = c(1, 3), mar = c(0.1, 0.1, 3, 0.1), family = "LM Roman 10")
-covArrays <- getCovariates(myX, myY)
-sapply(1:3, function(i){
-  image(myX, myY, covArrays[,,i], xaxt = "n", yaxt = "n", xlab = "", ylab = "", col = terrain.colors(30),
-        main = as.expression(substitute(beta[B]~c[B]~"(z)",
-                                 list(B = i))), cex.main = 3)
-})
+# Plot covariates
+grid <- expand.grid(myX,myY)
+c1map <- data.frame(x=grid[,1], y=grid[,2], val=apply(grid, 1, ScalC1))
+c2map <- data.frame(x=grid[,1], y=grid[,2], val=apply(grid, 1, ScalC2))
+c3map <- data.frame(x=grid[,1], y=grid[,2], val=apply(grid, 1, function(x) sum(x^2)))
+
+ggopts <- theme(axis.title = element_blank(), axis.text = element_blank(), 
+                axis.ticks = element_blank(), legend.title = element_text(size=25), 
+                legend.text = element_text(size=20), legend.key.height=unit(3,"line"))
+
+pdf("covAnalytic1.pdf", width = 7, height = 6)
+c1plot <- ggplot(c1map, aes(x,y)) + geom_raster(aes(fill=val)) +
+    coord_equal() + scale_fill_viridis(name=expression(c[1])) + ggopts
+plot(c1plot)
 dev.off()
 
+pdf("covAnalytic2.pdf", width = 7, height = 6)
+c2plot <- ggplot(c2map, aes(x,y)) + geom_raster(aes(fill=val)) +
+    coord_equal() + scale_fill_viridis(name=expression(c[2])) + ggopts
+plot(c2plot)
+dev.off()
 
+pdf("covAnalytic3.pdf", width = 7, height = 6)
+c3plot <- ggplot(c3map, aes(x,y)) + geom_raster(aes(fill=val)) +
+    coord_equal() + scale_fill_viridis(name=expression(c[3])) + ggopts
+plot(c3plot)
+dev.off()
 
 
 covariatesModel <- function(xGrid, yGrid, params = c(A = 0.05, B1 = -1, B2 = 0.5)){
