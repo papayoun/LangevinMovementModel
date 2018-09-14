@@ -25,7 +25,7 @@ myY <- seq(ylim[1], ylim[2], length.out = ncells + 1)
 grille <- as.matrix(expand.grid(myX, myY))
 ud <-apply(grille, 1, function(x) UDMap(x, A, B1, B2, F))
 
-pdf("figures/UDFig1.pdf", width = 7, height = 6)
+pdf("UDFig1.pdf", width = 7, height = 6)
 UDmap <- data.frame(x=grille[,1], y=grille[,2], val=ud)
 UDplot <- ggplot(UDmap, aes(x,y)) + geom_raster(aes(fill=val)) +
     coord_equal() + scale_fill_viridis(name=expression(pi)) +
@@ -45,25 +45,26 @@ dev.off()
 #   # points(x[sel, 1:2], pch =20, cex = 0.2)
 # })
 
-png("figures/ExPaths.png", width = figWidth, height = figHeight)
-par(mfrow = c(2, 2), mar = rep(0, 4), family = "LM Roman 10")
+pdf("ExPaths.pdf", width=8, height=8)
+par(mfrow = c(2, 2), mar = rep(0, 4))
 mapply(function(x, y){
   sel1 <- seq(1, 5001, by = 10)
   t1 <- x[sel1, 3][length(sel1)]
-  plot(x[sel1, 1:2], type = "l", lwd = 0.5, col = "gray", xlim = xlim, ylim = ylim, xlab = "", ylab = "",
-       xaxt = "n", yaxt = "n")
+  plot(x[sel1, 1:2], type = "l", lwd = 0.5, asp = 1, xlim = xlim, ylim = ylim, 
+       col="dimgrey", xlab = "", ylab = "", xaxt = "n", yaxt = "n")
   points(x[sel1, 1:2], type = "p", pch = 20, cex = 0.2)
   points(x[1, 1:2, drop = F], type = "p", pch = 20, cex = 2, col = "red")
-  text(xlim[1] + 5 , ylim[1] + 2, substitute(paste(Delta, "=", b), list(b = t1)), cex = 3)
-  text(xlim[1]+5, ylim[2] -2, substitute(paste(gamma, " = ", b), list(b = y)), cex = 3)
+  text(xlim[1] + 5, ylim[1] + 2, substitute(paste(Delta, " = ", b), list(b = t1)), cex = 2)
+  text(xlim[1] + 5, ylim[2] - 2, substitute(paste(gamma, " = ", b), list(b = y)), cex = 2)
+  
   sel2 <- seq(1, 100001, by = 10)
   t2 <- x[sel2, 3][length(sel2)]
-  plot(x[sel2, 1:2], type = "l", lwd = 0.5, col = "gray", xlim = xlim, ylim = ylim, xlab = "", ylab = "",
-       xaxt = "n", yaxt = "n")
+  plot(x[sel2, 1:2], type = "l", lwd = 0.5, asp=1, xlim = xlim, ylim = ylim, 
+       col="dimgrey", xlab = "", ylab = "", xaxt = "n", yaxt = "n")
   points(x[sel2, 1:2], type = "p", pch = 20, cex = 0.2)
   points(x[1, 1:2, drop = F], type = "p", pch = 20, cex = 2, col = "red")
-  text(xlim[1]+5, ylim[1] +2, substitute(paste(Delta, " = ", b), list(b = t2)), cex = 3)
-  text(xlim[1]+5, ylim[2] -2, substitute(paste(gamma, " = ", b), list(b = y)), cex = 3)
+  text(xlim[1] + 5, ylim[1] + 2, substitute(paste(Delta, " = ", b), list(b = t2)), cex = 2)
+  text(xlim[1] + 5, ylim[2] - 2, substitute(paste(gamma, " = ", b), list(b = y)), cex = 2)
 }, samples, gammas)
 dev.off()
 par(mfrow = c(1, 1), mar = c(5, 5, 4, 1))
