@@ -1,4 +1,9 @@
 rm(list = ls())
+
+library(raster)
+library(ggplot2)
+library(viridis)
+
 source("archive/SimulationFunctions.R")
 source("archive/CovariateParameters.R")
 source("LinearAlgebraFunctions.R")
@@ -18,13 +23,19 @@ ncells <- 401
 myX <- seq(xlim[1], xlim[2], length.out = ncells + 1)
 myY <- seq(ylim[1], ylim[2], length.out = ncells + 1)
 grille <- as.matrix(expand.grid(myX, myY))
-ud <- matrix(apply(grille, 1, function(x) UDMap(x, A, B1, B2, F)), nrow = length(myX))
-figHeight = 600; figWidth = 800
-png("figures/UDFig1.png", width = figWidth, height = figHeight)
-par(mar = rep(0, 4), mfrow = c(1, 1), family = "LM Roman 10")
-image(myX, myY, ud, col = terrain.colors(30), xaxt = "n", yaxt = "n", xlab = "", ylab = "")                      
-box(lwd = 2)
+ud <-apply(grille, 1, function(x) UDMap(x, A, B1, B2, F))
+
+pdf("figures/UDFig1.pdf", width = 7, height = 6)
+UDmap <- data.frame(x=grille[,1], y=grille[,2], val=ud)
+UDplot <- ggplot(UDmap, aes(x,y)) + geom_raster(aes(fill=val)) +
+    coord_equal() + scale_fill_viridis(name=expression(pi)) +
+    theme(axis.title = element_blank(), axis.text = element_blank(), 
+          axis.ticks = element_blank(), legend.title = element_text(size=15), 
+          legend.text = element_text(size=12))
+
+plot(UDplot)
 dev.off()
+
 # par(mfrow = c(1, 2))
 # sapply(samples, function(x){
 #   sel <- seq(1, nrow(x), by = 1000)
