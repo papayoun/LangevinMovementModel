@@ -30,8 +30,8 @@ UDmap <- data.frame(x=grille[,1], y=grille[,2], val=ud)
 UDplot <- ggplot(UDmap, aes(x,y)) + geom_raster(aes(fill=val)) +
     coord_equal() + scale_fill_viridis(name=expression(pi)) +
     theme(axis.title = element_blank(), axis.text = element_blank(), 
-          axis.ticks = element_blank(), legend.title = element_text(size=15), 
-          legend.text = element_text(size=12))
+          axis.ticks = element_blank(), legend.title = element_text(size=25), 
+          legend.text = element_text(size=20), legend.key.height=unit(3,"line"))
 
 plot(UDplot)
 dev.off()
@@ -45,7 +45,7 @@ dev.off()
 #   # points(x[sel, 1:2], pch =20, cex = 0.2)
 # })
 
-pdf("ExPaths.pdf", width=8, height=8)
+pdf("ExPaths.pdf", width=7, height=6)
 par(mfrow = c(2, 2), mar = rep(0, 4))
 mapply(function(x, y){
   sel1 <- seq(1, 5001, by = 10)
@@ -55,7 +55,7 @@ mapply(function(x, y){
   points(x[sel1, 1:2], type = "p", pch = 20, cex = 0.2)
   points(x[1, 1:2, drop = F], type = "p", pch = 20, cex = 2, col = "red")
   text(xlim[1] + 5, ylim[1] + 2, substitute(paste(Delta, " = ", b), list(b = t1)), cex = 2)
-  text(xlim[1] + 5, ylim[2] - 2, substitute(paste(gamma, " = ", b), list(b = y)), cex = 2)
+  text(xlim[1] + 5, ylim[2] - 2, substitute(paste(gamma^2, " = ", b), list(b = y)), cex = 2)
   
   sel2 <- seq(1, 100001, by = 10)
   t2 <- x[sel2, 3][length(sel2)]
@@ -64,7 +64,7 @@ mapply(function(x, y){
   points(x[sel2, 1:2], type = "p", pch = 20, cex = 0.2)
   points(x[1, 1:2, drop = F], type = "p", pch = 20, cex = 2, col = "red")
   text(xlim[1] + 5, ylim[1] + 2, substitute(paste(Delta, " = ", b), list(b = t2)), cex = 2)
-  text(xlim[1] + 5, ylim[2] - 2, substitute(paste(gamma, " = ", b), list(b = y)), cex = 2)
+  text(xlim[1] + 5, ylim[2] - 2, substitute(paste(gamma^2, " = ", b), list(b = y)), cex = 2)
 }, samples, gammas)
 dev.off()
 par(mfrow = c(1, 1), mar = c(5, 5, 4, 1))
