@@ -4,6 +4,7 @@ library(raster)
 library(numDeriv)
 library(fields)
 library(expm)
+library(ggplot2)
 library(viridis)
 # Load other source files
 source("simCov.R")
@@ -42,6 +43,36 @@ for(i in 1:length(covlist))
     rsfRaster <- rsfRaster + beta[i]*covlist[[i]]
 rsfRaster <- exp(rsfRaster)
 
+############################
+## Plot covariates and UD ##
+############################
+ggopts <- theme(axis.title = element_text(size=20), axis.text = element_text(size=20), 
+                legend.title = element_text(size=25), legend.text = element_text(size=20), 
+                legend.key.height=unit(3,"line"))
+
+c1map <- as.data.frame(cbind(coordinates(covlist[[1]]), val=values(covlist[[1]])))
+c1plot <- ggplot(c1map, aes(x,y)) + geom_raster(aes(fill=val)) +
+    coord_equal() + scale_fill_viridis(name=expression(c[1])) + ggopts
+
+c2map <- as.data.frame(cbind(coordinates(covlist[[2]]), val=values(covlist[[2]])))
+c2plot <- ggplot(c2map, aes(x,y)) + geom_raster(aes(fill=val)) +
+    coord_equal() + scale_fill_viridis(name=expression(c[2])) + ggopts
+
+UDmap <- as.data.frame(cbind(coordinates(rsfRaster),
+                             val=values(rsfRaster)/sum(values(rsfRaster))))
+UDplot <- ggplot(UDmap, aes(x,y)) + geom_raster(aes(fill=val)) +
+    coord_equal() + scale_fill_viridis(name=expression(pi)) + ggopts
+
+pdf("sim2c1.pdf", width = 7, height = 6)
+plot(c1plot)
+dev.off()
+pdf("sim2c2.pdf", width = 7, height = 6)
+plot(c2plot)
+dev.off()
+pdf("sim2UD.pdf", width = 7, height = 6)
+plot(UDplot)
+dev.off()
+
 ###################
 ## Simulate data ##
 ###################
@@ -74,7 +105,8 @@ colnames(alldata) <- c("ID","x","y","time")
 ##############
 thin <- c(1,2,5,10,25,50,100)
 allpar <- matrix(NA, length(thin), 3)
-allvar <- matrix(NA, length(thin), 3)
+allvar <- matrix(NA, length(thin), 2)
+allCI <- list()
 for(i in 1:length(thin)) {
     cat("Iteration",i,"/",length(thin),"\n")
     # thin
@@ -93,67 +125,43 @@ for(i in 1:length(thin)) {
     # derive covariate gradients at observed locations
     gradarray <- covGrad(xy, xgrid, ygrid, covarray)
 
-    ## Fit UD with Euler discretization
-    # lse <- eulerLSE(ID=ID, time=time, xy=xy, gradarray=gradarray)
-    # allpar[i,] <- lse$est
-    # allvar[i,] <- diag(lse$var)
+    # Fit UD with Euler discretization
+    lse <- eulerLSE(ID=ID, time=time, xy=xy, gradarray=gradarray)
+    allpar[i,] <- c(lse$betaHat, lse$gammaHat)
+    allvar[i,] <- diag(lse$betaHatCovariance)
+    allCI[[i]] <- lse$betaHat95CI
     
-    # Fit by numerical MLE
-    par0 <- c(0, 0, log(1))
-    mod <- optim(par=par0, fn=nllkLang, xy=xy, time=time, ID=ID, gradarray=gradarray,
-                 control=list(trace=1), hessian=TRUE)
-    
-    allpar[i,] <- c(mod$par[1:2], exp(mod$par[3]))
-    allvar[i,] <- diag(solve(mod$hessian))
+    # # Fit by numerical MLE
+    # par0 <- c(0, 0, log(1))
+    # mod <- optim(par=par0, fn=nllkLang, xy=xy, time=time, ID=ID, gradarray=gradarray,
+    #              control=list(trace=1), hessian=TRUE)
+    # 
+    # allpar[i,] <- c(mod$par[1:2], exp(mod$par[3]))
+    # allvar[i,] <- diag(solve(mod$hessian))
 }
 
-# results: beta1
-plot(thin*dt, allpar[,1], log="x", xlab="interval", ylab=expression(beta[1]), ylim=c(0,8))
+# Plot beta estimates
+pdf("sim2beta.pdf", width=8, height=4)
+par(mfrow=c(1,2), mar=c(5,4,1,1)+0.1)
+
+plot(thin*dt, allpar[,1], log="x", xlab="interval", ylab=expression(beta[1]), ylim=c(0,6))
 lCI <- allpar[,1] - 1.96*sqrt(allvar[,1])
 uCI <- allpar[,1] + 1.96*sqrt(allvar[,1])
 segments(x0=thin*dt, y0=lCI, x1=thin*dt, y1=uCI)
 abline(h=0, lty=2)
 abline(h=2, lty=2, col=2)
 
-# results: beta2
-plot(thin*dt, allpar[,2], log="x", xlab="interval", ylab=expression(beta[2]), ylim=c(0,8))
+plot(thin*dt, allpar[,2], log="x", xlab="interval", ylab=expression(beta[2]), ylim=c(0,6))
 lCI <- allpar[,2] - 1.96*sqrt(allvar[,2])
 uCI <- allpar[,2] + 1.96*sqrt(allvar[,2])
 segments(x0=thin*dt, y0=lCI, x1=thin*dt, y1=uCI)
 abline(h=0, lty=2)
 abline(h=4, lty=2, col=2)
+dev.off()
 
-# results: gamma
-plot(thin*dt, allpar[,3], log="x", xlab="interval", ylab="gamma", ylim=c(0.48,0.52))
-lCI <- allpar[,3] - 1.96*sqrt(allvar[,3])
-uCI <- allpar[,3] + 1.96*sqrt(allvar[,3])
-segments(x0=thin*dt, y0=lCI, x1=thin*dt, y1=uCI)
+# Plot gamma estimates
+pdf("sim2gamma.pdf", width=4, height=4)
+par(mfrow=c(1,1), mar=c(5,5,1,1)+0.1)
+plot(thin*dt, allpar[,3], log="x", xlab="interval", ylab=expression(gamma^2), ylim=c(0.48,0.52))
 abline(h=0.5, lty=2, col=2)
-
-# # # 95% CI
-# # cbind(lse$est[1:ncov] - 1.96*sqrt(diag(lse$var)),
-# #       lse$est[1:ncov],
-# #       lse$est[1:ncov] + 1.96*sqrt(diag(lse$var)))
-# # 
-# # # Compute estimated RSF
-# # betaMLE <- lse$est[1:ncov]
-# # rsfRasterMLE <- 0
-# # for(i in 1:length(covlist))
-# #     rsfRasterMLE <- rsfRasterMLE + betaMLE[i]*covlist[[i]]
-# # rsfRasterMLE <- exp(rsfRasterMLE)
-# # plot(rsfRasterMLE, col=viridis(1e3))
-# # 
-# # # Plot estimated utilisation vs true utilisation for each grid cell 
-# # # (should align with identity line)
-# # plot(values(rsfRaster)/sum(values(rsfRaster)),
-# #      values(rsfRasterMLE)/sum(values(rsfRasterMLE)))
-# # abline(0,1,col=2)
-# 
-# # plot true against estimated
-# library(localGibbs)
-# r <- rastRSF(allpar[10,1:3],covlist)
-# x <- values(rsfRaster)/sum(values(rsfRaster))
-# y <- values(r)/sum(values(r))
-# plot(x, y, pch=20, cex=0.2, xlab="True", ylab="Estimated", main=expression(Delta==10),
-#      xlim=range(x,y), ylim=range(x,y))
-# abline(0,1,lty=2,col=2)
+dev.off()
