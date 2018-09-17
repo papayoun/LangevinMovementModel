@@ -6,33 +6,21 @@ library(expm)
 library(viridis)
 library(ggplot2)
 library(gridExtra)
-# source("../utility.R")
 source("utility.R")
-# source("../eulerLSE.R")
 source("eulerLSE.R")
 ####################
 ## Prepare tracks ##
 ####################
 # load track from Github URL
-baseURL <- "https://raw.githubusercontent.com/kenady/ctmcUD-MEE/master/"
-tracksLL <- read.csv(url(paste0(baseURL,"sea_lion_telemetry.csv")))
-tracksLL <- subset(tracksLL, !is.na(longitude) & !is.na(latitude))
-
-utmcoord <- SpatialPoints(tracksLL[,c("longitude","latitude")], 
-                          proj4string=CRS("+proj=longlat"))
-llcoord <- spTransform(utmcoord, CRS("+init=epsg:3338"))
-tracks <- data.frame(ID = tracksLL$Deploy_ID,
-                     x = attr(llcoord,"coords")[,1]/1000,
-                     y = attr(llcoord,"coords")[,2]/1000)
-
+tracks <- read.csv("SSLpreddat.csv")
 ID <- as.integer(tracks$ID)
 ID[ID==14809] <- 1
 ID[ID==15136] <- 2
 ID[ID==15137] <- 3
-xy <- matrix(c(tracks$x,tracks$y),ncol=2)
-time <- as.POSIXct(tracksLL$GMT, format="%m/%d/%Y %H:%M", tz="GMT")
+time <- as.POSIXct(tracks$time)
 time <- as.numeric(time)
 time <- (time-min(time))/3600
+xy <- matrix(c(tracks$x, tracks$y)/1000, ncol=2)
 
 # for plots
 xydf <- data.frame(x=xy[,1], y=xy[,2])
@@ -104,7 +92,7 @@ do.call("grid.arrange",covplot)
 gradarray <- covGrad(xy, xgrid, ygrid, covarray)
 
 # Fit model
-selectedID <- ID %in% c(1)
+selectedID <- ID %in% c(1, 2, 3)
 selectedCovariate <- (1:4) %in% c(1, 2, 3, 4)
 lse <- eulerLSE(ID = ID[selectedID], time = time[selectedID], xy = xy[selectedID, ], 
                 gradarray = gradarray[selectedID, , selectedCovariate, drop = F], withspeed = T)
@@ -122,6 +110,6 @@ rsfRasterMLE <- exp(rsfRasterMLE)
 # plot estimated RSF
 covmap <- data.frame(coordinates(rsfRasterMLE),
                      val = values(rsfRasterMLE) / sum(values(rsfRasterMLE)))
-ggplot(covmap, aes(x,y)) + geom_raster(aes(fill = val)) +
+ggplot(covmap, aes(x,y)) + geom_raster(aes(fill = log(val))) +
     coord_equal() + scale_fill_viridis(name=expression(log(pi))) +
     geom_point(aes(x,y), data=xydf, size=0.3)
