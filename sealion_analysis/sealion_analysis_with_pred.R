@@ -74,11 +74,17 @@ for(i in 1:ncov) {
     covmap <- data.frame(coordinates(mycov),val=values(mycov))
     covplot[[i]] <- ggplot(covmap,aes(x,y)) + geom_raster(aes(fill=val)) +
         coord_equal() + scale_fill_viridis(name=bquote(paste("c"[.(i)]))) +
-        ggtitle(covnames[i])
+        ggtitle(covnames[i]) + xlab("Easting (km)") + ylab("Northing (km)") +
+        theme(axis.title = element_text(size=12), axis.text = element_text(size=12), 
+              legend.title = element_text(size=15), legend.text = element_text(size=12), 
+              legend.key.height=unit(2,"line"), title = element_text(size=12))
 }
 covplot[[ncov+1]] <- ncov/2 # "ncol" in grid.arrange call
 names(covplot)[ncov+1] <- "ncol"
+
+pdf(file = "SSL_covs.pdf", width=10, height=6)
 do.call("grid.arrange",covplot)
+dev.off()
 
 ###################
 ## Model fitting ##
@@ -105,6 +111,13 @@ rsfRasterMLE <- exp(rsfRasterMLE)
 # plot estimated RSF
 covmap <- data.frame(coordinates(rsfRasterMLE),
                      val = values(rsfRasterMLE) / sum(values(rsfRasterMLE)))
-ggplot(covmap, aes(x,y)) + geom_raster(aes(fill = val)) +
-    coord_equal() + scale_fill_viridis(name = expression(pi)) +
-    geom_point(aes(x,y), data = xydf, size = 0.3)
+
+pdf(file="SSL_logUD.pdf", width=7, height=5)
+p <- ggplot(covmap, aes(x,y)) + geom_raster(aes(fill = log(val))) +
+    coord_equal() + scale_fill_viridis(name = expression(log(pi))) +
+    geom_point(aes(x,y), data = xydf, size = 0.3) + xlab("Easting (km)") + ylab("Northing (km)") +
+    theme(axis.title = element_text(size=15), axis.text = element_text(size=15), 
+          legend.title = element_text(size=20), legend.text = element_text(size=15), 
+          legend.key.height=unit(2,"line"))
+plot(p)
+dev.off()
