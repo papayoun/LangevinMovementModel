@@ -11,7 +11,7 @@ source("eulerLSE.R")
 ####################
 ## Prepare tracks ##
 ####################
-# load track from Github URL
+# load regularised track (from wilsonEtAl_with_pred.R)
 tracks <- read.csv("SSLpreddat.csv")
 ID <- as.integer(tracks$ID)
 ID[ID==14809] <- 1
@@ -20,7 +20,7 @@ ID[ID==15137] <- 3
 time <- as.POSIXct(tracks$time)
 time <- as.numeric(time)
 time <- (time-min(time))/3600
-xy <- matrix(c(tracks$x, tracks$y)/1000, ncol=2)
+xy <- matrix(c(tracks$x, tracks$y)/1000, ncol=2) # convert to km
 
 # for plots
 xydf <- data.frame(x=xy[,1], y=xy[,2])
@@ -43,11 +43,6 @@ for(i in 1:length(covlist)) {
                                      ymin(covlist[[i]]), ymax(covlist[[i]]))/1000)
     projection(covlist[[i]]) <- gsub("units=m", "units=km", projection(covlist[[i]]))
 }
-
-# negative values in Fig 2 of Wilson et al.
-values(covlist$slope) <- -values(covlist$slope)
-values(covlist$d2site) <- -values(covlist$d2site)
-values(covlist$d2shelf) <- -values(covlist$d2shelf)
 
 ncov <- length(covlist)
 # resample covariates to the same grid
@@ -89,7 +84,7 @@ do.call("grid.arrange",covplot)
 ## Model fitting ##
 ###################
 # Evaluate covariate gradients at observed locations
-gradarray <- covGrad(xy, xgrid, ygrid, covarray)
+system.time(gradarray <- covGrad(xy, xgrid, ygrid, covarray))
 
 # Fit model
 selectedID <- ID %in% c(1, 2, 3)
@@ -110,6 +105,6 @@ rsfRasterMLE <- exp(rsfRasterMLE)
 # plot estimated RSF
 covmap <- data.frame(coordinates(rsfRasterMLE),
                      val = values(rsfRasterMLE) / sum(values(rsfRasterMLE)))
-ggplot(covmap, aes(x,y)) + geom_raster(aes(fill = log(val))) +
-    coord_equal() + scale_fill_viridis(name=expression(log(pi))) +
-    geom_point(aes(x,y), data=xydf, size=0.3)
+ggplot(covmap, aes(x,y)) + geom_raster(aes(fill = val)) +
+    coord_equal() + scale_fill_viridis(name = expression(pi)) +
+    geom_point(aes(x,y), data = xydf, size = 0.3)
