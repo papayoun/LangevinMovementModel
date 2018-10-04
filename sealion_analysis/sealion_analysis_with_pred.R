@@ -23,7 +23,7 @@ time <- (time-min(time))/3600
 xy <- matrix(c(tracks$x, tracks$y)/1000, ncol=2) # convert to km
 
 # for plots
-xydf <- data.frame(x=xy[,1], y=xy[,2])
+xydf <- data.frame(ID=ID, x=xy[,1], y=xy[,2])
 
 #####################
 ## Load covariates ##
@@ -85,6 +85,20 @@ names(covplot)[ncov+1] <- "ncol"
 pdf(file = "SSL_covs.pdf", width=10, height=6)
 do.call("grid.arrange",covplot)
 dev.off()
+
+# Plot locations
+ggplot(xydf, aes(x, y, col=factor(ID), group=ID)) + geom_point(size=0.5) + geom_path() +
+    coord_equal(xlim=lim[1:2], ylim=lim[3:4]) + xlab("Easting (km)") + ylab("Northing (km)") +
+    scale_color_manual(values=c("firebrick","seagreen","royalblue"), name="ID")
+
+# # Trying to convert to LL for satellite map
+# library(moveHMM)
+# utmcoord <- SpatialPoints(cbind(xy[,1]*1000,xy[,2]*1000),
+#                           proj4string=CRS("+init=epsg:3338"))
+# llcoord <- spTransform(utmcoord,CRS("+proj=longlat"))
+# lldata <- data.frame(ID=xydf$ID,x=attr(llcoord,"coords")[,1],
+#                      y=attr(llcoord,"coords")[,2])
+# plotSat(lldata, zoom=3)
 
 ###################
 ## Model fitting ##
