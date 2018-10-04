@@ -165,3 +165,23 @@ par(mfrow=c(1,1), mar=c(5,5,1,1)+0.1)
 plot(thin*dt, allpar[,3], log="x", xlab="interval", ylab=expression(gamma^2), ylim=c(0.48,0.52))
 abline(h=0.5, lty=2, col=2)
 dev.off()
+
+##############################
+## Irregular time intervals ##
+##############################
+# keep 50000 locations
+data <- NULL
+for(id in unique(alldata[,"ID"])) {
+    ind <- sort(sample(1:1000, size=250))
+    data <- rbind(data, alldata[which(alldata[,"ID"]==id)[ind],])
+}
+
+ID <- data[,"ID"]
+xy <- data[,c("x","y")]
+time <- data[,"time"]
+
+# derive covariate gradients at observed locations
+gradarray <- covGrad(xy, xgrid, ygrid, covarray)
+
+# Fit UD with Euler discretization
+lse <- eulerLSE(ID=ID, time=time, xy=xy, gradarray=gradarray)
