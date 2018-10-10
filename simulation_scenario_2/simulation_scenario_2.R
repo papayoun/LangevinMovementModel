@@ -169,10 +169,12 @@ dev.off()
 ##############################
 ## Irregular time intervals ##
 ##############################
+set.seed(1)
 # keep 50000 locations
+thin <- 50 # thinning factor
 data <- NULL
 for(id in unique(alldata[,"ID"])) {
-    ind <- sort(sample(1:1000, size=250))
+    ind <- sort(sample(1:(thin*250), size=250))
     data <- rbind(data, alldata[which(alldata[,"ID"]==id)[ind],])
 }
 
