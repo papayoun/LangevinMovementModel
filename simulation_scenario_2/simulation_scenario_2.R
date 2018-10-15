@@ -140,30 +140,38 @@ for(i in 1:length(thin)) {
     # allvar[i,] <- diag(solve(mod$hessian))
 }
 
-# Plot beta estimates
-pdf("sim2beta.pdf", width=8, height=4)
-par(mfrow=c(1,2), mar=c(5,4,1,1)+0.1)
+# Plot parameter estimates
+estDF <- data.frame(dt = thin*dt, b1 = allpar[,1], b2 = allpar[,2], g = allpar[,3])
+ciDF <- data.frame(dt = thin*dt,
+                   b1low = allpar[,1] - 1.96*sqrt(allvar[,1]),
+                   b1up = allpar[,1] + 1.96*sqrt(allvar[,1]),
+                   b2low = allpar[,2] - 1.96*sqrt(allvar[,2]),
+                   b2up = allpar[,2] + 1.96*sqrt(allvar[,2]))
 
-plot(thin*dt, allpar[,1], log="x", xlab="interval", ylab=expression(beta[1]), ylim=c(0,6))
-lCI <- allpar[,1] - 1.96*sqrt(allvar[,1])
-uCI <- allpar[,1] + 1.96*sqrt(allvar[,1])
-segments(x0=thin*dt, y0=lCI, x1=thin*dt, y1=uCI)
-abline(h=0, lty=2)
-abline(h=2, lty=2, col=2)
-
-plot(thin*dt, allpar[,2], log="x", xlab="interval", ylab=expression(beta[2]), ylim=c(0,6))
-lCI <- allpar[,2] - 1.96*sqrt(allvar[,2])
-uCI <- allpar[,2] + 1.96*sqrt(allvar[,2])
-segments(x0=thin*dt, y0=lCI, x1=thin*dt, y1=uCI)
-abline(h=0, lty=2)
-abline(h=4, lty=2, col=2)
+p <- ggplot(estDF, aes(dt, b1)) + geom_point() + scale_x_continuous(trans=log_trans(), breaks=estDF$dt) +
+    xlab("Time interval") + ylab(expression(beta[1])) + coord_cartesian(ylim=c(0,8)) +
+    geom_segment(data = ciDF, aes(x=dt, y=b1low, xend=dt, yend=b1up)) +
+    geom_hline(yintercept = 0, lty=2) + geom_hline(yintercept = beta[1], col=2, lty=2) +
+    theme(axis.title = element_text(size=13), axis.text = element_text(size=13))
+pdf(file = "sim2beta1.pdf", width=4, height=4)
+plot(p)
 dev.off()
 
-# Plot gamma estimates
-pdf("sim2gamma.pdf", width=4, height=4)
-par(mfrow=c(1,1), mar=c(5,5,1,1)+0.1)
-plot(thin*dt, allpar[,3], log="x", xlab="interval", ylab=expression(gamma^2), ylim=c(0.48,0.52))
-abline(h=0.5, lty=2, col=2)
+p <- ggplot(estDF, aes(dt, b2)) + geom_point() + scale_x_continuous(trans=log_trans(), breaks=estDF$dt) +
+    xlab("Time interval") + ylab(expression(beta[2])) + coord_cartesian(ylim=c(0,8)) +
+    geom_segment(data = ciDF, aes(x=dt, y=b2low, xend=dt, yend=b2up)) +
+    geom_hline(yintercept = 0, lty=2) + geom_hline(yintercept = beta[2], col=2, lty=2) +
+    theme(axis.title = element_text(size=13), axis.text = element_text(size=13))
+pdf(file = "sim2beta2.pdf", width=4, height=4)
+plot(p)
+dev.off()
+
+p <- ggplot(estDF, aes(dt, g)) + geom_point() + scale_x_continuous(trans=log_trans(), breaks=estDF$dt) +
+    xlab("Time interval") + ylab(expression(gamma^2)) + coord_cartesian(ylim=c(0.48,0.52)) +
+    geom_hline(yintercept = speed, col=2, lty=2) +
+    theme(axis.title = element_text(size=13), axis.text = element_text(size=13))
+pdf(file = "sim2gamma.pdf", width=4, height=4)
+plot(p)
 dev.off()
 
 ##############################
