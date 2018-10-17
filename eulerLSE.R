@@ -61,13 +61,18 @@ eulerLSE <- function(ID=NULL, xy, time, gradarray, withspeed=TRUE)
   estimatedGamma <- NULL
   CIgamma <- NULL
   if(withspeed){
-    estimatedGamma <- colSums((Y -  sqrt(timeIncrements) * designMatrix %*% estimatedNu)^2) / degreeFreedom
+    estimatedGamma <- sum((Y -  sqrt(timeIncrements) * designMatrix %*% estimatedNu)^2) / degreeFreedom
     estimatedBeta <- estimatedNu / estimatedGamma * (degreeFreedom - 2) / degreeFreedom
     estimatedBetaCovariance <- (2 * estimatedBeta %*% t(estimatedBeta) / (degreeFreedom - 4) 
                                 + estimatedCovariance / estimatedGamma * (1 + 2 / (degreeFreedom - 4)))
     
     CIgamma <- estimatedGamma * degreeFreedom/qchisq(c(0.975,0.025), degreeFreedom)
   }
+  
+  # Derive R squared
+  RSS1 <- sum((Y -  sqrt(timeIncrements) * designMatrix %*% estimatedNu)^2)
+  RSS0 <- sum(Y^2)
+  R2 <- 1 - RSS1/RSS0
   
   confidenceIntervals <- t(sapply(1:length(estimatedBeta), function(j){
     estimatedBeta[j] + c(1, -1) * qnorm(0.025) *  sqrt(estimatedBetaCovariance[j, j])
@@ -76,7 +81,7 @@ eulerLSE <- function(ID=NULL, xy, time, gradarray, withspeed=TRUE)
   rownames(confidenceIntervals) <- rownames(estimatedBetaCovariance) <- colnames(estimatedBetaCovariance) <- paste0("beta", 1:J)
   return(list(betaHat = as.numeric(estimatedBeta), gammaHat  = estimatedGamma,
               betaHatCovariance = estimatedBetaCovariance, betaHat95CI = confidenceIntervals,
-              gammaHat95CI = CIgamma))
+              gammaHat95CI = CIgamma, R2=R2))
 }
 # eulerLSE <- function(ID=NULL, xy, time, gradarray, withspeed=TRUE) 
 # {
