@@ -59,18 +59,24 @@ eulerLSE <- function(ID=NULL, xy, time, gradarray, withspeed=TRUE)
   degreeFreedom <- length(Y) - J
   estimatedBeta <- estimatedNu <- estimatedCovariance %*% t(designMatrix) %*% positionIncrements;
   estimatedGamma <- NULL
+  CIgamma <- NULL
   if(withspeed){
     estimatedGamma <- colSums((Y -  sqrt(timeIncrements) * designMatrix %*% estimatedNu)^2) / degreeFreedom
     estimatedBeta <- estimatedNu / estimatedGamma * (degreeFreedom - 2) / degreeFreedom
     estimatedBetaCovariance <- (2 * estimatedBeta %*% t(estimatedBeta) / (degreeFreedom - 4) 
                                 + estimatedCovariance / estimatedGamma * (1 + 2 / (degreeFreedom - 4)))
+    
+    CIgamma <- estimatedGamma * degreeFreedom/qchisq(c(0.975,0.025), degreeFreedom)
   }
+  
   confidenceIntervals <- t(sapply(1:length(estimatedBeta), function(j){
     estimatedBeta[j] + c(1, -1) * qnorm(0.025) *  sqrt(estimatedBetaCovariance[j, j])
   }))
+  
   rownames(confidenceIntervals) <- rownames(estimatedBetaCovariance) <- colnames(estimatedBetaCovariance) <- paste0("beta", 1:J)
   return(list(betaHat = as.numeric(estimatedBeta), gammaHat  = estimatedGamma,
-              betaHatCovariance = estimatedBetaCovariance, betaHat95CI = confidenceIntervals))
+              betaHatCovariance = estimatedBetaCovariance, betaHat95CI = confidenceIntervals,
+              gammaHat95CI = CIgamma))
 }
 # eulerLSE <- function(ID=NULL, xy, time, gradarray, withspeed=TRUE) 
 # {

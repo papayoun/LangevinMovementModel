@@ -107,6 +107,7 @@ thin <- c(1,2,5,10,25,50,100)
 allpar <- matrix(NA, length(thin), 3)
 allvar <- matrix(NA, length(thin), 2)
 allCI <- list()
+allgammaCI <- matrix(NA, length(thin), 2)
 for(i in 1:length(thin)) {
     cat("Iteration",i,"/",length(thin),"\n")
     # thin
@@ -130,6 +131,7 @@ for(i in 1:length(thin)) {
     allpar[i,] <- c(lse$betaHat, lse$gammaHat)
     allvar[i,] <- diag(lse$betaHatCovariance)
     allCI[[i]] <- lse$betaHat95CI
+    allgammaCI[i,] <- lse$gammaHat95CI
     
     # # Fit by numerical MLE
     # par0 <- c(0, 0, log(1))
@@ -146,9 +148,11 @@ ciDF <- data.frame(dt = thin*dt,
                    b1low = allpar[,1] - 1.96*sqrt(allvar[,1]),
                    b1up = allpar[,1] + 1.96*sqrt(allvar[,1]),
                    b2low = allpar[,2] - 1.96*sqrt(allvar[,2]),
-                   b2up = allpar[,2] + 1.96*sqrt(allvar[,2]))
+                   b2up = allpar[,2] + 1.96*sqrt(allvar[,2]),
+                   glow = allgammaCI[,1],
+                   gup = allgammaCI[,2])
 
-p <- ggplot(estDF, aes(dt, b1)) + geom_point() + scale_x_continuous(trans=log_trans(), breaks=estDF$dt) +
+p <- ggplot(estDF, aes(dt, b1)) + geom_point() + scale_x_continuous(trans="log", breaks=estDF$dt) +
     xlab("Time interval") + ylab(expression(beta[1])) + coord_cartesian(ylim=c(0,8)) +
     geom_segment(data = ciDF, aes(x=dt, y=b1low, xend=dt, yend=b1up)) +
     geom_hline(yintercept = 0, lty=2) + geom_hline(yintercept = beta[1], col=2, lty=2) +
@@ -157,7 +161,7 @@ pdf(file = "sim2beta1.pdf", width=4, height=4)
 plot(p)
 dev.off()
 
-p <- ggplot(estDF, aes(dt, b2)) + geom_point() + scale_x_continuous(trans=log_trans(), breaks=estDF$dt) +
+p <- ggplot(estDF, aes(dt, b2)) + geom_point() + scale_x_continuous(trans="log", breaks=estDF$dt) +
     xlab("Time interval") + ylab(expression(beta[2])) + coord_cartesian(ylim=c(0,8)) +
     geom_segment(data = ciDF, aes(x=dt, y=b2low, xend=dt, yend=b2up)) +
     geom_hline(yintercept = 0, lty=2) + geom_hline(yintercept = beta[2], col=2, lty=2) +
@@ -166,8 +170,9 @@ pdf(file = "sim2beta2.pdf", width=4, height=4)
 plot(p)
 dev.off()
 
-p <- ggplot(estDF, aes(dt, g)) + geom_point() + scale_x_continuous(trans=log_trans(), breaks=estDF$dt) +
-    xlab("Time interval") + ylab(expression(gamma^2)) + coord_cartesian(ylim=c(0.48,0.52)) +
+p <- ggplot(estDF, aes(dt, g)) + geom_point() + scale_x_continuous(trans="log", breaks=estDF$dt) +
+    xlab("Time interval") + ylab(expression(gamma^2)) + coord_cartesian(ylim=c(0.49,0.51)) +
+    geom_segment(data = ciDF, aes(x=dt, y=glow, xend=dt, yend=gup)) +
     geom_hline(yintercept = speed, col=2, lty=2) +
     theme(axis.title = element_text(size=13), axis.text = element_text(size=13))
 pdf(file = "sim2gamma.pdf", width=4, height=4)
@@ -179,7 +184,7 @@ dev.off()
 ##############################
 set.seed(1)
 # keep 50000 locations
-thin <- 50 # thinning factor
+thin <- 5 # thinning factor
 data <- NULL
 for(id in unique(alldata[,"ID"])) {
     ind <- sort(sample(1:(thin*250), size=250))
