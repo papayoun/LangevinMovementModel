@@ -135,3 +135,11 @@ p <- ggplot(covmap, aes(x,y)) + geom_raster(aes(fill = log(val))) +
           legend.key.height=unit(2,"line"))
 plot(p)
 dev.off()
+
+###############################################
+## Simulate from MALA to get acceptance rate ##
+###############################################
+set.seed(1)
+ind <- which(ID==unique(ID)[1])
+sim <- simLangMH(beta=lse$betaHat, speed=lse$gammaHat, time=time[ind], xy0=xy[ind[1],], 
+          xgrid=xgrid, ygrid=ygrid, covarray=covarray)

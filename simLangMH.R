@@ -34,7 +34,10 @@ simLangMH <- function(beta, speed=1, time, xy0, xgrid, ygrid, covarray) {
     acc <- 0
     rej <- 0
     for(t in 2:nbObs) {
-        cat("\rSimulating Langevin process...",round(100*t/nbObs),"%")
+        if(t%%100==0) {
+            cat(paste("\rSimulating Langevin process...",round(100*t/nbObs),
+                      "% -- acc =",round(acc/(rej+acc)*100),"%"))  
+        }
         
         # Propose new location
         xyprime <- xy[t-1,] + 0.5 * g * speed * dt[t-1] + rnorm(2, 0, sqrt(speed*dt[t-1]))
@@ -44,8 +47,10 @@ simLangMH <- function(beta, speed=1, time, xy0, xgrid, ygrid, covarray) {
         logRSFprime <- logRSFinterp(xyprime, beta, xgrid, ygrid, covarray=covarray)
         
         # Log-proposals in both directions, for the acceptance ratio
-        logProp <- sum(dnorm(xy[t-1,], xyprime + speed*dt[t-1]*gprime/2, speed*dt[t-1], log=TRUE))
-        logPropPrime <- sum(dnorm(xyprime, xy[t-1,] + speed*dt[t-1]*g/2, speed*dt[t-1], log=TRUE))
+        logProp <- sum(dnorm(xy[t-1,], xyprime + speed*dt[t-1]*gprime/2, 
+                             sqrt(speed*dt[t-1]), log=TRUE))
+        logPropPrime <- sum(dnorm(xyprime, xy[t-1,] + speed*dt[t-1]*g/2, 
+                                  sqrt(speed*dt[t-1]), log=TRUE))
         
         # Log acceptance ratio
         logAR <- logRSFprime + logProp - logRSF - logPropPrime

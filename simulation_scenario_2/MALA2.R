@@ -6,6 +6,7 @@ library(fields)
 library(expm)
 library(ggplot2)
 library(viridis)
+library(ash)
 # Load other source files
 source("simCov.R")
 source("utility.R")
@@ -33,7 +34,7 @@ xygrid <- expand.grid(xgrid, ygrid)
 
 # Include squared distance to centre of map as covariate
 dist2 <- ((xygrid[,1])^2+(xygrid[,2])^2)/100
-covlist[[3]] <- rasterFromXYZ(cbind(xygrid, dist2))
+covlist[[3]] <- rasterFromXYZ(cbind(xygrid,dist2))
 
 # Store covariates in an array 
 # (note that each layer is rotated, as required by interp.surface)
@@ -52,20 +53,30 @@ rsfRaster <- exp(rsfRaster)
 ## Simulate data ##
 ###################
 set.seed(1)
-Tmax <- 2e3
-alldt <- c(0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1, 2, 5)
-speed <- 0.5
+dt <- 0.01
+nobs <- 1e6
+speed <- 1
+time <- dt*(1:nobs)
 
-allsim <- list()
 t0 <- Sys.time()
-for(iter in 1:length(alldt)) {
-    cat("Iteration",iter,"\n")
-    dt <- alldt[iter]
-    time <- seq(0, Tmax, by = dt)    
-    allsim[[iter]] <- simLangMH(beta=beta, speed=speed, time=time, xy0=c(0,0), 
-                                xgrid=xgrid, ygrid=ygrid, covarray=covarray)
-    print(Sys.time()-t0)
-}
+simdat <- simLangMH(beta=beta, speed=speed, time=time, xy0=c(0,0), 
+                    xgrid=xgrid, ygrid=ygrid, covarray=covarray)
+print(Sys.time()-t0)
 
-# Derive acceptance rates
-lapply(allsim, function(sim) sim$acc/(sim$acc+sim$rej))
+############################
+## Empirical distribution ##
+############################
+# Count locations in grid cells
+xy <- simdat$xy
+bins <- bin2(x = xy,
+             ab = matrix(lim,2,2,byrow=TRUE),
+             nbin = c(length(xgrid),length(ygrid)))
+foo <- bins$nc[,ncol(bins$nc):1,drop=F] # flip horizontally
+empUD <- as.vector(foo)/sum(foo)
+
+trueUD <- values(rsfRaster)/sum(values(rsfRaster))
+
+ind <- which(empUD>0)
+plotlim <- range(trueUD[ind], empUD[ind])
+plot(trueUD[ind], empUD[ind], log="xy")
+abline(0,1)
